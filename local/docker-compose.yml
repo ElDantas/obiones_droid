@@ -1,0 +1,22 @@
+services:
+  localstack:
+    image: localstack/localstack:4.14
+    ports: ["4566:4566"]
+    environment:
+      SERVICES: lambda,stepfunctions,dynamodb,dynamodbstreams,ssm,secretsmanager,sns,events,s3,iam,sts,cloudformation,logs
+      LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT: "60"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  pgvector:
+    image: pgvector/pgvector:pg16
+    ports: ["55432:5432"]
+    environment:
+      POSTGRES_DB: agentic
+      POSTGRES_USER: agentic
+      POSTGRES_PASSWORD: agentic
+  wiremock:
+    image: wiremock/wiremock:latest
+    ports: ["8089:8080"]
+    command: ["--global-response-templating", "--verbose"]
+    volumes:
+      - ./wiremock:/home/wiremock

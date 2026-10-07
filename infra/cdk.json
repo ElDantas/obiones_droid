@@ -1,0 +1,8 @@
+{
+  "app": "mvn -e -q compile exec:java",
+  "context": {
+    "agentic:account": "000000000000",
+    "agentic:region": "eu-west-2",
+    "agentic:local": "false"
+  }
+}

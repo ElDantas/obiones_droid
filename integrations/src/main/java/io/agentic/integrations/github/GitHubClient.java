@@ -156,6 +156,16 @@ public class GitHubClient {
         return new ArrayList<>(numbers);
     }
 
+    public List<Integer> findOpenPullRequestsByHead(String repo, String branch) {
+        String owner = repo.split("/")[0];
+        String url = api.url("/repos/" + repo + "/pulls?state=open&head=" + URLEncoder.encode(owner + ":" + branch, StandardCharsets.UTF_8));
+        List<Integer> numbers = new ArrayList<>();
+        for (JsonNode p : api.http.get(url, api.headers())) {
+            numbers.add(p.path("number").asInt());
+        }
+        return numbers;
+    }
+
     public void markReadyForReview(String repo, int pr) {
         String nodeId = getPullRequest(repo, pr).nodeId();
         api.graphql("""

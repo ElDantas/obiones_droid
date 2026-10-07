@@ -4,6 +4,7 @@ import software.amazon.awscdk.App;
 import software.amazon.awscdk.Environment;
 import software.amazon.awscdk.StackProps;
 import software.amazon.awscdk.Tags;
+import software.amazon.awscdk.services.apigatewayv2.HttpMethod;
 
 import java.util.Map;
 
@@ -30,6 +31,8 @@ public final class AgenticApp {
         if (!settings.local()) {
             ApiStack api = new ApiStack(app, "AgenticApi", props, env, settings);
             api.addDependency(foundation);
+            Grants.common(api.route("JiraEvents", "io.agentic.functions.ingress.JiraEventHandler", HttpMethod.POST, "/jira/events").function());
+            Grants.common(api.route("GitHubWebhook", "io.agentic.functions.ingress.GitHubWebhookHandler", HttpMethod.POST, "/github/webhook").function());
         }
         Tags.of(app).add("project", "agentic");
     }

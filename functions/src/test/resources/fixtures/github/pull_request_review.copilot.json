@@ -1,0 +1,3 @@
+{"action":"submitted","repository":{"full_name":"acme/payments"},
+ "pull_request":{"number":418},
+ "review":{"id":9002,"state":"commented","body":"Consider BigDecimal","user":{"login":"copilot-pull-request-reviewer[bot]"}}}

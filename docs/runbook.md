@@ -54,3 +54,15 @@ aws dynamodb get-item --table-name agentic-runs --key '{"ticketKey":{"S":"ABC-12
 aws dynamodb query --table-name agentic-ledger --key-condition-expression "ticketKey = :k" \
   --expression-attribute-values '{":k":{"S":"ABC-123"}}'
 ```
+
+## Baseline metrics
+
+Run locally with your own credentials (never in CI):
+
+```bash
+export JIRA_BASE_URL=https://<org>.atlassian.net JIRA_EMAIL=<you> JIRA_API_TOKEN=<token> GITHUB_TOKEN=<pat>
+./mvnw -q -pl tools/baseline -am install -DskipTests
+./mvnw -q -pl tools/baseline exec:java -Dexec.args="--jql '<JQL>' --repo owner/repo1 --repo owner/repo2 --out docs/baseline.md"
+```
+
+`JIRA_STORY_POINTS_FIELD` defaults to `customfield_10016`.

@@ -135,6 +135,17 @@ class RunStoreIT {
     }
 
     @Test
+    void escalationCanBeClaimedOnceAndOnlyForTheCurrentId() {
+        store.tryStart("ABC-9", "r1", "acme/pay", Budgets.defaults(), NOW);
+        store.setEscalation("ABC-9", RunState.READINESS, Map.of("id", "e1", "reason", "x"));
+        store.transition("ABC-9", RunState.READINESS, RunState.ESCALATED, Actor.BOT, "x");
+        assertThat(store.claimEscalation("ABC-9", "old", "U1")).isFalse();
+        assertThat(store.claimEscalation("ABC-9", "e1", "U1")).isTrue();
+        assertThat(store.claimEscalation("ABC-9", "e1", "U2")).isFalse();
+        assertThat(store.string("ABC-9", "escalationResolvedBy")).contains("U1");
+    }
+
+    @Test
     void isoWeekFormat() {
         assertThat(RunStore.isoWeek(NOW)).isEqualTo("2026-W41");
     }

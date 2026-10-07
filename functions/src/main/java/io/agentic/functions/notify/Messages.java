@@ -25,7 +25,7 @@ public final class Messages {
             case FIXING -> "🔧 Fixing: " + r;
             case HUMAN_REVIEW -> "👀 Ready for review: " + links.pr(run.repo(), run.prNumber());
             case HUMAN_FIX -> "🔁 Addressing review comments";
-            case ESCALATED -> "⚠️ Paused: " + r + "\nTo abort, remove the `Agentic AI Approved` label. To retry from scratch, comment `/agent restart` on the Jira ticket.";
+            case ESCALATED -> null;
             case DONE -> "✅ Merged: " + links.pr(run.repo(), run.prNumber());
             case ABORTED -> "🛑 Aborted: " + r;
             case READINESS -> null;

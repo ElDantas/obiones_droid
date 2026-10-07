@@ -54,6 +54,9 @@ public class ApplyEscalationDecisionTask implements RequestHandler<Map<String, O
             case "RESUME_FIXING" -> RunState.FIXING;
             default -> null;
         };
+        if ("RESUME".equals(decision) || "RAISE_BUDGET".equals(decision)) {
+            store.setFlag(key, "loopOverride", true);
+        }
         if (target != null) {
             transitions.moveTo(key, target, Actor.HUMAN, "Escalation resolved: " + decision);
         }

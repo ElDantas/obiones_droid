@@ -10,6 +10,7 @@ import io.agentic.functions.config.Services;
 import io.agentic.functions.config.Wiring;
 import io.agentic.functions.gates.FeedbackComposer;
 import io.agentic.functions.notify.RunTransitions;
+import io.agentic.functions.ops.KillSwitchGuard;
 import io.agentic.functions.store.Run;
 import io.agentic.functions.store.RunStore;
 import io.agentic.functions.usage.UsageMeter;
@@ -29,21 +30,24 @@ public class HumanFixTask implements RequestHandler<Map<String, Object>, Map<Str
     private final CopilotClient copilot;
     private final UsageMeter usage;
     private final Clock clock;
+    private final KillSwitchGuard killSwitch;
     private final BudgetEvaluator budgets = new BudgetEvaluator();
     private final FeedbackComposer feedback = new FeedbackComposer();
 
     public HumanFixTask() {
         this(Services.instance().runStore(), Wiring.transitions(), Services.instance().github(), Services.instance().copilot(),
-                Wiring.usageMeter(), Services.instance().clock());
+                Wiring.usageMeter(), Services.instance().clock(), new KillSwitchGuard(Services.instance().params()));
     }
 
-    HumanFixTask(RunStore store, RunTransitions transitions, GitHubClient github, CopilotClient copilot, UsageMeter usage, Clock clock) {
+    HumanFixTask(RunStore store, RunTransitions transitions, GitHubClient github, CopilotClient copilot, UsageMeter usage, Clock clock,
+                 KillSwitchGuard killSwitch) {
         this.store = store;
         this.transitions = transitions;
         this.github = github;
         this.copilot = copilot;
         this.usage = usage;
         this.clock = clock;
+        this.killSwitch = killSwitch;
     }
 
     @Override
@@ -51,6 +55,10 @@ public class HumanFixTask implements RequestHandler<Map<String, Object>, Map<Str
         String key = TaskSupport.ticketKey(input);
         transitions.moveTo(key, RunState.HUMAN_FIX, Actor.HUMAN, "Reviewer requested changes");
         Run run = store.get(key).orElseThrow();
+        java.util.Optional<String> paused = killSwitch.check(run.repo());
+        if (paused.isPresent()) {
+            return TaskSupport.decision("ESCALATE", paused.get());
+        }
         BudgetVerdict verdict = budgets.evaluate(run.budgets(), run.usage(), clock.instant(), BudgetEvaluator.IterationKind.HUMAN);
         if (verdict.isBreach()) {
             return TaskSupport.decision("ESCALATE", "Human review requested changes " + run.usage().humanIterations()

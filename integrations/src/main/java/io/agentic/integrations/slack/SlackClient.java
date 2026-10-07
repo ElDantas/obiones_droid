@@ -64,6 +64,22 @@ public class SlackClient {
         return res.at("/user/profile/email").asText(null);
     }
 
+    public java.util.Set<String> usergroupMemberIds(String handle) {
+        JsonNode groups = http.get(apiBase + "usergroups.list", headers());
+        check("usergroups.list", groups);
+        String plain = handle.startsWith("@") ? handle.substring(1) : handle;
+        for (JsonNode g : groups.path("usergroups")) {
+            if (plain.equals(g.path("handle").asText())) {
+                JsonNode users = http.get(apiBase + "usergroups.users.list?usergroup=" + g.path("id").asText(), headers());
+                check("usergroups.users.list", users);
+                java.util.Set<String> ids = new java.util.HashSet<>();
+                users.path("users").forEach(u -> ids.add(u.asText()));
+                return ids;
+            }
+        }
+        return java.util.Set.of();
+    }
+
     private JsonNode call(String method, Map<String, Object> body) {
         JsonNode res = http.post(apiBase + method, headers(), body);
         check(method, res);

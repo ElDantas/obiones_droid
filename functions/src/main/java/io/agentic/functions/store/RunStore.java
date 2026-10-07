@@ -263,8 +263,29 @@ public class RunStore {
     }
 
     public void setEscalation(String ticketKey, RunState from, Map<String, Object> escalation) {
-        update(ticketKey, "SET escalatedFrom = :f, escalationJson = :e", Map.of(),
-                Map.of(":f", s(from.name()), ":e", s(json(escalation))));
+        Object id = escalation.get("id");
+        update(ticketKey, "SET escalatedFrom = :f, escalationJson = :e, escalationId = :i REMOVE escalationResolvedBy", Map.of(),
+                Map.of(":f", s(from.name()), ":e", s(json(escalation)), ":i", s(id == null ? "" : id.toString())));
+    }
+
+    public void updateEscalation(String ticketKey, Map<String, Object> escalation) {
+        set(ticketKey, "escalationJson", s(json(escalation)));
+    }
+
+    public boolean claimEscalation(String ticketKey, String escalationId, String userId) {
+        try {
+            ddb.updateItem(UpdateItemRequest.builder()
+                    .tableName(runsTable)
+                    .key(key(ticketKey))
+                    .updateExpression("SET escalationResolvedBy = :u")
+                    .conditionExpression("escalationId = :i AND attribute_not_exists(escalationResolvedBy) AND #s = :esc")
+                    .expressionAttributeNames(Map.of("#s", "state"))
+                    .expressionAttributeValues(Map.of(":u", s(userId), ":i", s(escalationId), ":esc", s(RunState.ESCALATED.name())))
+                    .build());
+            return true;
+        } catch (ConditionalCheckFailedException e) {
+            return false;
+        }
     }
 
     public void setLastFindings(String ticketKey, Object findings) {

@@ -74,6 +74,22 @@ final class E2eDriver implements AutoCloseable {
                 "x-hub-signature-256", WebhookSigner.sign(body, WEBHOOK_SECRET)));
     }
 
+    HttpResponse<String> slackAction(String userId, String ticketKey, String escalationId, String decision) {
+        String value = "{\\\"ticketKey\\\":\\\"" + ticketKey + "\\\",\\\"escalationId\\\":\\\"" + escalationId
+                + "\\\",\\\"decision\\\":\\\"" + decision + "\\\"}";
+        String payload = "{\"type\":\"block_actions\",\"user\":{\"id\":\"" + userId + "\"},\"channel\":{\"id\":\"C1\"},"
+                + "\"message\":{\"ts\":\"1.1\",\"blocks\":[]},\"actions\":[{\"value\":\"" + value + "\"}]}";
+        String body = "payload=" + java.net.URLEncoder.encode(payload, java.nio.charset.StandardCharsets.UTF_8);
+        String ts = Long.toString(Instant.now().getEpochSecond());
+        return send("POST", api("/slack/actions"), body, Map.of(
+                "x-slack-request-timestamp", ts,
+                "x-slack-signature", "v0=" + io.agentic.functions.ingress.HmacVerifier.sign("local-slack-secret", "v0:" + ts + ":" + body)));
+    }
+
+    String escalationId(String ticketKey) {
+        return store.string(ticketKey, "escalationId").orElseThrow();
+    }
+
     void stub(String json) {
         send("POST", WIREMOCK + "/__admin/mappings", json, Map.of("Content-Type", "application/json"));
     }

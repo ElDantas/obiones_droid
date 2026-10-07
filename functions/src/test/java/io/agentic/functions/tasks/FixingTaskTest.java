@@ -38,6 +38,7 @@ class FixingTaskTest {
     private CopilotClient copilot;
     private UsageMeter usage;
     private FixingTask task;
+    private io.agentic.functions.ops.KillSwitchGuard killSwitch;
 
     @BeforeEach
     void setUp() {
@@ -47,7 +48,9 @@ class FixingTaskTest {
         RepoConfigLoader loader = mock(RepoConfigLoader.class);
         when(loader.load(any(), any())).thenReturn(new RepoConfig(Budgets.defaults(), List.of(), List.of(), List.of()));
         when(store.lastFindings("ABC-1", GateFindings.class)).thenReturn(Optional.of(GateFindings.empty("abc")));
-        task = new FixingTask(store, mock(RunTransitions.class), copilot, usage, loader, Clock.fixed(NOW, ZoneOffset.UTC));
+        killSwitch = mock(io.agentic.functions.ops.KillSwitchGuard.class);
+        when(killSwitch.check(anyString())).thenReturn(Optional.empty());
+        task = new FixingTask(store, mock(RunTransitions.class), copilot, usage, loader, Clock.fixed(NOW, ZoneOffset.UTC), killSwitch);
     }
 
     @Test
@@ -99,6 +102,14 @@ class FixingTaskTest {
         when(store.get("ABC-1")).thenReturn(Optional.of(withUsage(run("ABC-1", RunState.FIXING, 101, 418), new RunUsage(1, 0, 30, 10, NOW), false)));
         task.handleRequest(Map.of("ticketKey", "ABC-1"), null);
         verify(usage).warnOnce(eq("ABC-1"), eq("budget-warn"), org.mockito.ArgumentMatchers.startsWith("⚠️ Approaching limits: Premium requests 30/50"));
+    }
+
+    @Test
+    void killSwitchEscalates() {
+        when(store.get("ABC-1")).thenReturn(Optional.of(withUsage(run("ABC-1", RunState.FIXING, 101, 418), new RunUsage(1, 0, 5, 10, NOW), false)));
+        when(killSwitch.check("acme/payments")).thenReturn(Optional.of("Paused by kill switch (global)"));
+        assertThat(task.handleRequest(Map.of("ticketKey", "ABC-1"), null)).containsEntry("decision", "ESCALATE").containsEntry("reason", "Paused by kill switch (global)");
+        verify(copilot, never()).instruct(anyString(), anyInt(), anyString());
     }
 
     @Test

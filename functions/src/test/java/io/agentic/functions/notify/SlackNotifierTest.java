@@ -55,7 +55,7 @@ class SlackNotifierTest {
 
     @Test
     void reasonIsScrubbed() {
-        notifier.onTransition(withThread("100.1"), RunState.GATES, RunState.ESCALATED, "token ghp_abcdefghijklmnopqrstuvwxyz0123456789 leaked");
+        notifier.onTransition(withThread("100.1"), RunState.GATES, RunState.FIXING, "token ghp_abcdefghijklmnopqrstuvwxyz0123456789 leaked");
         verify(slack).post(eq("#agentic-dev"), eq("100.1"), isNull(),
                 argThat(t -> t.contains("[REDACTED_GITHUB_TOKEN]") && !t.contains("ghp_abcdefghijklmnopqrstuvwxyz0123456789")));
     }

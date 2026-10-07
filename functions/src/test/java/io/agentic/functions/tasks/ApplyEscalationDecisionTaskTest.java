@@ -46,6 +46,7 @@ class ApplyEscalationDecisionTaskTest {
         when(store.get("ABC-1")).thenReturn(Optional.of(run("ABC-1", RunState.ESCALATED, 101, 418, RunState.FIXING)));
         assertThat(task.handleRequest(input("RAISE_BUDGET"), null)).containsEntry("decision", "RESUME_FIXING");
         verify(store).saveBudgets("ABC-1", Budgets.defaults().raisedBy(1.5));
+        verify(store).setFlag("ABC-1", "loopOverride", true);
     }
 
     @Test

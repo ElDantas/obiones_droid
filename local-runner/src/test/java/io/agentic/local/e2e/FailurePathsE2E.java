@@ -84,6 +84,23 @@ class FailurePathsE2E {
     }
 
     @Test
+    void escalationResolvedFromSlackAbortsOnce() {
+        driver.jira("E2E-8", "approved");
+        driver.awaitState("E2E-8", RunState.CODING, T);
+        driver.awaitWait("E2E-8", "PR_READY", T);
+        driver.github("pull_request", fixture("pr-opened.json", Map.of("pr", "418")));
+        driver.github("pull_request", fixture("pr-opened.json", Map.of("pr", "419")));
+        driver.awaitState("E2E-8", RunState.ESCALATED, T);
+        driver.awaitWait("E2E-8", "ESCALATION_DECISION", T);
+        String id = driver.escalationId("E2E-8");
+        assertThat(driver.slackAction("U123", "E2E-8", id, "ABORT").statusCode()).isEqualTo(200);
+        driver.slackAction("U123", "E2E-8", id, "ABORT");
+        driver.awaitState("E2E-8", RunState.ABORTED, T);
+        driver.awaitExecutionStatus("E2E-8", "SUCCEEDED", T);
+        assertThat(driver.wiremockCount("POST", "/api/chat.postEphemeral", "Already handled")).isEqualTo(1);
+    }
+
+    @Test
     void unflagAbortsTheRun() {
         driver.jira("E2E-6", "approved");
         driver.awaitState("E2E-6", RunState.CODING, T);

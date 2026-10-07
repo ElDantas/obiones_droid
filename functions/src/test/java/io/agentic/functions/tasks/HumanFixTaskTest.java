@@ -36,7 +36,13 @@ class HumanFixTaskTest {
     private final GitHubClient github = mock(GitHubClient.class);
     private final CopilotClient copilot = mock(CopilotClient.class);
     private final UsageMeter usage = mock(UsageMeter.class);
-    private final HumanFixTask task = new HumanFixTask(store, mock(RunTransitions.class), github, copilot, usage, Clock.fixed(NOW, ZoneOffset.UTC));
+    private final io.agentic.functions.ops.KillSwitchGuard killSwitch = mock(io.agentic.functions.ops.KillSwitchGuard.class);
+    private final HumanFixTask task = new HumanFixTask(store, mock(RunTransitions.class), github, copilot, usage, Clock.fixed(NOW, ZoneOffset.UTC), killSwitch);
+
+    @org.junit.jupiter.api.BeforeEach
+    void noKillSwitch() {
+        when(killSwitch.check(anyString())).thenReturn(Optional.empty());
+    }
 
     @Test
     void limitReachedEscalatesAsUnderspecified() {

@@ -40,6 +40,21 @@ public class SlackNotifier implements Notifier {
         slack.post(channel.get(), thread, null, text);
     }
 
+    public String postBlocks(Run run, java.util.List<java.util.Map<String, Object>> blocks, String fallback) {
+        String thread = ensureRoot(run);
+        return slack.post(channel.get(), thread, blocks, fallback);
+    }
+
+    public void dmBlocks(String email, java.util.List<java.util.Map<String, Object>> blocks, String fallback) {
+        if (email != null) {
+            slack.dmByEmail(email, blocks, fallback);
+        }
+    }
+
+    public String channel() {
+        return channel.get();
+    }
+
     public void dm(String email, String text) {
         if (email != null) {
             slack.dmByEmail(email, null, text);

@@ -1,0 +1,22 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/api/users.info"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "ok": true,
+      "user": {
+        "id": "U123",
+        "profile": {
+          "email": "dev@example.com"
+        }
+      }
+    }
+  },
+  "priority": 1
+}

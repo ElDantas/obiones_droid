@@ -12,6 +12,7 @@ import io.agentic.functions.config.Wiring;
 import io.agentic.functions.gates.FeedbackComposer;
 import io.agentic.functions.gates.GateFindings;
 import io.agentic.functions.notify.RunTransitions;
+import io.agentic.functions.ops.KillSwitchGuard;
 import io.agentic.functions.readiness.RepoConfigLoader;
 import io.agentic.functions.store.Run;
 import io.agentic.functions.store.RunStore;
@@ -29,22 +30,26 @@ public class FixingTask implements RequestHandler<Map<String, Object>, Map<Strin
     private final UsageMeter usage;
     private final RepoConfigLoader configLoader;
     private final Clock clock;
+    private final KillSwitchGuard killSwitch;
     private final BudgetEvaluator budgets = new BudgetEvaluator();
     private final FeedbackComposer feedback = new FeedbackComposer();
     private final LoopDetector loopDetector = new LoopDetector();
 
     public FixingTask() {
         this(Services.instance().runStore(), Wiring.transitions(), Services.instance().copilot(),
-                Wiring.usageMeter(), new RepoConfigLoader(Services.instance().github()), Services.instance().clock());
+                Wiring.usageMeter(), new RepoConfigLoader(Services.instance().github()), Services.instance().clock(),
+                new KillSwitchGuard(Services.instance().params()));
     }
 
-    FixingTask(RunStore store, RunTransitions transitions, CopilotClient copilot, UsageMeter usage, RepoConfigLoader configLoader, Clock clock) {
+    FixingTask(RunStore store, RunTransitions transitions, CopilotClient copilot, UsageMeter usage, RepoConfigLoader configLoader, Clock clock,
+               KillSwitchGuard killSwitch) {
         this.store = store;
         this.transitions = transitions;
         this.copilot = copilot;
         this.usage = usage;
         this.configLoader = configLoader;
         this.clock = clock;
+        this.killSwitch = killSwitch;
     }
 
     @Override
@@ -52,6 +57,10 @@ public class FixingTask implements RequestHandler<Map<String, Object>, Map<Strin
         String key = TaskSupport.ticketKey(input);
         transitions.moveTo(key, RunState.FIXING, Actor.BOT, "Gates failed");
         Run run = store.get(key).orElseThrow();
+        Optional<String> paused = killSwitch.check(run.repo());
+        if (paused.isPresent()) {
+            return TaskSupport.decision("ESCALATE", paused.get());
+        }
         if (run.humanOverride()) {
             return TaskSupport.decision("HUMAN_OVERRIDE", "A human pushed to the PR branch");
         }

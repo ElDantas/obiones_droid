@@ -1,0 +1,19 @@
+budgets:
+  maxGateIterations: 3
+  maxHumanIterations: 3
+  premiumSoft: 30
+  premiumHard: 50
+  codingTimeoutMinutes: 60
+  actionsMinutesSoft: 120
+  actionsMinutesHard: 240
+  maxDiffLines: 800
+  maxDiffFiles: 25
+forbiddenPaths:
+  - "infra/**"
+  - "**/migrations/**"
+reviewers:
+  - replace-with-github-login
+escalationApprovers:
+  - replace-with-email@example.com
+requiredChecks:
+  - build

@@ -44,7 +44,7 @@ public final class Wiring {
             Services s = Services.instance();
             JiraNotifier jira = new JiraNotifier(s.jira(), s.slack(),
                     () -> s.params().find("/agentic/slack/channels/ops").orElse("#agentic-ops"),
-                    () -> s.params().find("/agentic/docs/agentReadyUrl").orElse(null),
+                    () -> s.params().find("/agentic/docs/agentReadyUrl").filter(u -> u.startsWith("http")).orElse(null),
                     links());
             transitions = new RunTransitions(s.runStore(), List.of(slackNotifier(), jira));
         }

@@ -106,6 +106,7 @@ public class FoundationStack extends Stack {
         p.put("/agentic/slack/channels/dev", "#agentic-dev");
         p.put("/agentic/slack/channels/ops", "#agentic-ops");
         p.put("/agentic/github/serviceUser", "agentic-svc");
+        p.put("/agentic/docs/agentReadyUrl", "unset");
         return p;
     }
 

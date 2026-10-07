@@ -14,4 +14,6 @@ put() { $AWS ssm put-parameter --name "$1" --value "$2" --type String --overwrit
 put /agentic/repos/allowlist '["acme/payments"]'
 put /agentic/repos/acme/payments/enabled true
 put /agentic/enabled true
+docker exec -i local-pgvector-1 psql -q -U agentic -d agentic -v ON_ERROR_STOP=1 < ../memory/src/main/resources/db/V1__lessons.sql
+docker exec -i local-pgvector-1 psql -q -U agentic -d agentic -c "CREATE TABLE IF NOT EXISTS schema_version (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now()); INSERT INTO schema_version (name) VALUES ('V1__lessons.sql') ON CONFLICT DO NOTHING;"
 echo "LocalStack bootstrapped"

@@ -28,6 +28,9 @@ public final class AgenticApp {
         OrchestratorStack orchestrator = new OrchestratorStack(app, "AgenticOrchestrator", props, env, settings);
         orchestrator.addDependency(foundation);
         if (!settings.local()) {
+            MemoryStack memory = new MemoryStack(app, "AgenticMemory", props, env, settings);
+            memory.addDependency(foundation);
+            orchestrator.addDependency(memory);
             ApiStack api = new ApiStack(app, "AgenticApi", props, env, settings);
             api.addDependency(foundation);
             api.addDependency(orchestrator);

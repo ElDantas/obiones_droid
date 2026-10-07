@@ -14,6 +14,11 @@ import io.agentic.integrations.jira.JiraFields;
 import io.agentic.integrations.llm.FakeLlm;
 import io.agentic.integrations.llm.TextModel;
 import io.agentic.integrations.slack.SlackClient;
+import io.agentic.integrations.llm.Embeddings;
+import io.agentic.memory.BedrockEmbedder;
+import io.agentic.memory.LessonRepository;
+import io.agentic.memory.MemoryExecutors;
+import io.agentic.memory.SqlExecutor;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
@@ -40,6 +45,9 @@ public class Services {
     private final Supplier<JiraClient> jira = memo(this::buildJira);
     private final Supplier<SlackClient> slack = memo(this::buildSlack);
     private final Supplier<TextModel> textModel = memo(this::buildTextModel);
+    private final Supplier<SqlExecutor> memorySql = memo(this::buildMemorySql);
+    private final Supplier<Embeddings> embeddings = memo(this::buildEmbeddings);
+    private final Supplier<LessonRepository> lessons = memo(() -> new LessonRepository(memorySql.get(), embeddings.get()));
 
     public static synchronized Services instance() {
         if (instance == null) {
@@ -92,6 +100,18 @@ public class Services {
         return textModel.get();
     }
 
+    public SqlExecutor memorySql() {
+        return memorySql.get();
+    }
+
+    public Embeddings embeddings() {
+        return embeddings.get();
+    }
+
+    public LessonRepository lessons() {
+        return lessons.get();
+    }
+
     public String githubApiUrl() {
         return Env.get("GITHUB_API_URL", "https://api.github.com");
     }
@@ -131,6 +151,19 @@ public class Services {
 
     private TextModel buildTextModel() {
         return Env.fakeLlm() ? new FakeLlm() : new BedrockText(BedrockRuntimeClient.create());
+    }
+
+    private SqlExecutor buildMemorySql() {
+        return MemoryExecutors.fromEnv(name -> Env.find(name).orElseGet(() -> switch (name) {
+            case "MEMORY_CLUSTER_ARN" -> params().find("/agentic/memory/clusterArn").orElse(null);
+            case "MEMORY_SECRET_ARN" -> params().find("/agentic/memory/secretArn").orElse(null);
+            default -> null;
+        }));
+    }
+
+    private Embeddings buildEmbeddings() {
+        return Env.fakeLlm() ? new FakeLlm()
+                : new BedrockEmbedder(BedrockRuntimeClient.create(), () -> params().find("/agentic/bedrock/embedModelId").orElse("amazon.titan-embed-text-v2:0"));
     }
 
     private static <T> Supplier<T> memo(Supplier<T> delegate) {

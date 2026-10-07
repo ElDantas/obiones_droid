@@ -41,6 +41,14 @@ public final class Grants {
                 .build());
     }
 
+    public static void memory(Function fn) {
+        Stack stack = Stack.of(fn);
+        fn.addToRolePolicy(PolicyStatement.Builder.create()
+                .actions(List.of("rds-data:ExecuteStatement", "rds-data:BatchExecuteStatement"))
+                .resources(List.of("arn:aws:rds:" + stack.getRegion() + ":" + stack.getAccount() + ":cluster:agentic-memory"))
+                .build());
+    }
+
     public static void bedrock(Function fn) {
         fn.addToRolePolicy(PolicyStatement.Builder.create()
                 .actions(List.of("bedrock:InvokeModel", "bedrock:Rerank"))

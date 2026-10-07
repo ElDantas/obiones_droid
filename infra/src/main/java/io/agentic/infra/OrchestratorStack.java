@@ -141,6 +141,7 @@ public class OrchestratorStack extends Stack {
         for (JavaFunction f : functions) {
             Grants.common(f.function());
             Grants.bedrock(f.function());
+            Grants.memory(f.function());
         }
     }
 

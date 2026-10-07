@@ -2,6 +2,8 @@ package io.agentic.integrations.bedrock;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.agentic.integrations.http.Json;
+import io.agentic.integrations.llm.Prompt;
+import io.agentic.integrations.llm.TextModel;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
@@ -14,7 +16,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class BedrockText {
+public class BedrockText implements TextModel {
     private static final Pattern FENCED = Pattern.compile("(?s)^\\s*```[a-zA-Z]*\\s*(.*?)\\s*```\\s*$");
 
     private final BedrockRuntimeClient client;
@@ -37,6 +39,16 @@ public class BedrockText {
             }
         }
         return sb.toString();
+    }
+
+    @Override
+    public String converse(String modelId, Prompt prompt, String user) {
+        return converse(modelId, prompt.system(), user);
+    }
+
+    @Override
+    public <T> T converseJson(String modelId, Prompt prompt, String user, Class<T> type) {
+        return converseJson(modelId, prompt.system(), user, type);
     }
 
     public <T> T converseJson(String modelId, String system, String user, Class<T> type) {

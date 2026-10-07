@@ -22,7 +22,7 @@ public final class AgenticApp {
         StackProps props = StackProps.builder()
                 .env(Environment.builder().account(settings.account()).region(settings.region()).build())
                 .build();
-        FoundationStack foundation = new FoundationStack(app, "AgenticFoundation", props, Map.of());
+        FoundationStack foundation = new FoundationStack(app, "AgenticFoundation", props, Map.of(), settings.local());
         Map<String, String> env = Map.of(
                 "RUNS_TABLE", "agentic-runs",
                 "LEDGER_TABLE", "agentic-ledger",

@@ -3,7 +3,7 @@ services:
     image: localstack/localstack:4.14
     ports: ["4566:4566"]
     environment:
-      SERVICES: lambda,stepfunctions,dynamodb,dynamodbstreams,ssm,secretsmanager,sns,events,s3,iam,sts,cloudformation,logs
+      SERVICES: lambda,stepfunctions,dynamodb,ssm,secretsmanager,sns,events,s3,iam,sts,cloudformation,logs
       LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT: "60"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

@@ -32,6 +32,10 @@ public class FoundationStack extends Stack {
     private final List<Secret> secrets;
 
     public FoundationStack(Construct scope, String id, StackProps props, Map<String, String> parameterOverrides) {
+        this(scope, id, props, parameterOverrides, false);
+    }
+
+    public FoundationStack(Construct scope, String id, StackProps props, Map<String, String> parameterOverrides, boolean local) {
         super(scope, id, props);
 
         runs = Table.Builder.create(this, "Runs")
@@ -46,15 +50,17 @@ public class FoundationStack extends Stack {
         runs.addGlobalSecondaryIndex(GlobalSecondaryIndexProps.builder()
                 .indexName("byPr").partitionKey(Attribute.builder().name("repoPr").type(AttributeType.STRING).build()).build());
 
-        ledger = Table.Builder.create(this, "Ledger")
+        Table.Builder ledgerBuilder = Table.Builder.create(this, "Ledger")
                 .tableName("agentic-ledger")
                 .partitionKey(Attribute.builder().name("ticketKey").type(AttributeType.STRING).build())
                 .sortKey(Attribute.builder().name("tsSeq").type(AttributeType.STRING).build())
                 .billingMode(BillingMode.PAY_PER_REQUEST)
-                .stream(StreamViewType.NEW_IMAGE)
                 .pointInTimeRecoverySpecification(PointInTimeRecoverySpecification.builder().pointInTimeRecoveryEnabled(true).build())
-                .removalPolicy(RemovalPolicy.RETAIN)
-                .build();
+                .removalPolicy(RemovalPolicy.RETAIN);
+        if (!local) {
+            ledgerBuilder.stream(StreamViewType.NEW_IMAGE);
+        }
+        ledger = ledgerBuilder.build();
         ledger.addGlobalSecondaryIndex(GlobalSecondaryIndexProps.builder()
                 .indexName("byWeek")
                 .partitionKey(Attribute.builder().name("week").type(AttributeType.STRING).build())

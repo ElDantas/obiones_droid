@@ -32,6 +32,14 @@ class FoundationStackTest {
     }
 
     @Test
+    void localModeLedgerHasNoStream() {
+        Template t = Template.fromStack(new FoundationStack(new App(), "L", null, Map.of(), true));
+        t.hasResourceProperties("AWS::DynamoDB::Table", Map.of(
+                "TableName", "agentic-ledger",
+                "StreamSpecification", Match.absent()));
+    }
+
+    @Test
     void killSwitchDefaultsToTrue() {
         template().hasResourceProperties("AWS::SSM::Parameter", Map.of("Name", "/agentic/enabled", "Value", "true"));
     }

@@ -16,6 +16,7 @@
         <module>functions</module>
         <module>infra</module>
         <module>tools/baseline</module>
+        <module>local-runner</module>
     </modules>
 
     <properties>

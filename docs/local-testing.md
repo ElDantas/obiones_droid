@@ -30,6 +30,38 @@ curl -s localhost:8089/__admin/mappings
 | Aurora PostgreSQL + pgvector | `pgvector/pgvector:pg16` on `localhost:55432`, `MEMORY_MODE=jdbc` |
 | API Gateway | `LocalApiServer` on `localhost:8080` (step 05a) |
 
+## Deploying to LocalStack
+
+```bash
+docker compose -f local/docker-compose.yml up -d
+local/deploy.sh
+aws --endpoint-url http://localhost:4566 --region eu-west-2 dynamodb list-tables
+```
+
+`local/deploy.sh` builds the functions jar, runs `cdklocal bootstrap` and `cdklocal deploy --all` with `-c agentic:local=true`, then `local/bootstrap.sh` loads the fake secrets from `local/secrets/` and the local SSM parameters (`acme/payments` is allow-listed).
+
+With `agentic:local=true` the CDK app skips SnapStart, Lambda aliases, the HTTP API stack and the Aurora memory stack.
+
+## Local API runner
+
+API Gateway HTTP APIs are not available in the LocalStack community image, so `LocalApiServer` exposes the ingress handlers in-process:
+
+```bash
+./mvnw -q -pl local-runner -am install -DskipTests
+./mvnw -q -pl local-runner exec:java
+curl -s localhost:8080/health
+```
+
+| Route | Handler |
+|---|---|
+| `GET /health` | `HealthHandler` |
+| `POST /jira/events` | `JiraEventHandler` (step 08) |
+| `POST /github/webhook` | `GitHubWebhookHandler` (step 08) |
+| `POST /slack/actions` | `SlackActionsHandler` (step 16) |
+| `POST /mcp` | `McpHandler` (step 18) |
+
+Routes whose handler does not exist yet return `501`. The runner points the AWS SDK at LocalStack (`aws.endpointUrl`), sets `AGENTIC_LLM_MODE=fake`, and points GitHub, Jira, Slack and Confluence at WireMock on `localhost:8089`.
+
 ## Cloud-only checks
 
 - Real Copilot coding agent behaviour and webhook timing

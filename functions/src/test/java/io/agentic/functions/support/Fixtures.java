@@ -45,4 +45,9 @@ public final class Fixtures {
         return new Run(key, "r1", "acme/payments", state, issue, pr, "arn:exec", null, Budgets.defaults(),
                 RunUsage.start(Instant.parse("2026-10-07T12:00:00Z")), List.of(), false, List.of(), Map.of(), escalatedFrom);
     }
+
+    public static Run withUsage(Run r, RunUsage usage, boolean humanOverride) {
+        return new Run(r.ticketKey(), r.runId(), r.repo(), r.state(), r.issueNumber(), r.prNumber(), r.executionArn(), r.slackThreadTs(),
+                r.budgets(), usage, r.snapshots(), humanOverride, r.injectedLessonIds(), r.escalation(), r.escalatedFrom());
+    }
 }

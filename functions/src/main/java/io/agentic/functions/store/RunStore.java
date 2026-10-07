@@ -200,6 +200,27 @@ public class RunStore {
                 Map.of(":f", s(from.name()), ":e", s(json(escalation))));
     }
 
+    public void setLastFindings(String ticketKey, Object findings) {
+        set(ticketKey, "lastFindingsJson", s(json(findings)));
+    }
+
+    public <T> Optional<T> lastFindings(String ticketKey, Class<T> type) {
+        Map<String, AttributeValue> item = ddb.getItem(GetItemRequest.builder()
+                .tableName(runsTable)
+                .key(key(ticketKey))
+                .consistentRead(true)
+                .projectionExpression("lastFindingsJson")
+                .build()).item();
+        if (item == null || !item.containsKey("lastFindingsJson")) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(Json.MAPPER.readValue(item.get("lastFindingsJson").s(), type));
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     public Optional<String> registerWait(String ticketKey, WaitKind kind, String taskToken) {
         Optional<String> pending = take(ticketKey, "pending", kind);
         if (pending.isPresent()) {

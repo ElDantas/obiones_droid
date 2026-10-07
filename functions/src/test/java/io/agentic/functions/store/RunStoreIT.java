@@ -125,6 +125,16 @@ class RunStoreIT {
     }
 
     @Test
+    void lastFindingsRoundTrip() {
+        store.tryStart("ABC-8", "r1", "acme/pay", Budgets.defaults(), NOW);
+        assertThat(store.lastFindings("ABC-8", io.agentic.functions.gates.GateFindings.class)).isEmpty();
+        var findings = new io.agentic.functions.gates.GateFindings("sha",
+                List.of(new io.agentic.functions.gates.GateFinding("ci", "ci:build", "a.java", 3, "boom")), List.of(), List.of("x"));
+        store.setLastFindings("ABC-8", findings);
+        assertThat(store.lastFindings("ABC-8", io.agentic.functions.gates.GateFindings.class)).contains(findings);
+    }
+
+    @Test
     void isoWeekFormat() {
         assertThat(RunStore.isoWeek(NOW)).isEqualTo("2026-W41");
     }

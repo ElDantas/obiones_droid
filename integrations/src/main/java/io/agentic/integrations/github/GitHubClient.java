@@ -2,6 +2,7 @@ package io.agentic.integrations.github;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.agentic.core.scope.ScopeGuard.ChangedFile;
+import io.agentic.integrations.github.model.Annotation;
 import io.agentic.integrations.github.model.CheckRun;
 import io.agentic.integrations.github.model.Commit;
 import io.agentic.integrations.github.model.PullRequest;
@@ -75,6 +76,26 @@ public class GitHubClient {
                     c.at("/output/text").asText(null)));
         }
         return runs;
+    }
+
+    public List<Annotation> listCheckRunAnnotations(String repo, long checkRunId) {
+        List<Annotation> annotations = new ArrayList<>();
+        for (JsonNode a : api.http.getPaged(api.url("/repos/" + repo + "/check-runs/" + checkRunId + "/annotations?per_page=100"), api.headers())) {
+            annotations.add(new Annotation(
+                    a.path("path").asText(null),
+                    a.hasNonNull("start_line") ? a.get("start_line").asInt() : null,
+                    a.path("title").asText(""),
+                    a.path("message").asText("")));
+        }
+        return annotations;
+    }
+
+    public List<ReviewComment> listReviewCommentsForReview(String repo, int pr, long reviewId) {
+        List<ReviewComment> comments = new ArrayList<>();
+        for (JsonNode c : api.http.getPaged(api.url("/repos/" + repo + "/pulls/" + pr + "/reviews/" + reviewId + "/comments?per_page=100"), api.headers())) {
+            comments.add(toReviewComment(c));
+        }
+        return comments;
     }
 
     public List<ReviewComment> listReviewComments(String repo, int pr) {

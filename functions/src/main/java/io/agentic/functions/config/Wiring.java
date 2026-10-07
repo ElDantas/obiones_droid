@@ -1,5 +1,6 @@
 package io.agentic.functions.config;
 
+import io.agentic.functions.gates.GateCollector;
 import io.agentic.functions.ingress.GitHubEventRouter;
 import io.agentic.functions.ingress.Identities;
 import io.agentic.functions.notify.JiraNotifier;
@@ -49,6 +50,10 @@ public final class Wiring {
             transitions = new RunTransitions(s.runStore(), List.of(slackNotifier(), jira));
         }
         return transitions;
+    }
+
+    public static GateCollector gateCollector() {
+        return new GateCollector(Services.instance().github(), identities());
     }
 
     public static RunStarter runStarter() {

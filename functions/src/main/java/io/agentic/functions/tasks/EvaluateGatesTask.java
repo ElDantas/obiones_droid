@@ -35,6 +35,7 @@ public class EvaluateGatesTask implements RequestHandler<Map<String, Object>, Ma
     private final RepoConfigLoader configLoader;
     private final UsageMeter usage;
     private final Clock clock;
+    private final java.util.function.Supplier<io.agentic.functions.learning.LessonRecorder> recorder;
     private final GateEvaluator evaluator = new GateEvaluator();
     private final ScopeGuard scopeGuard = new ScopeGuard();
     private final SnapshotBuilder snapshots = new SnapshotBuilder();
@@ -42,11 +43,12 @@ public class EvaluateGatesTask implements RequestHandler<Map<String, Object>, Ma
 
     public EvaluateGatesTask() {
         this(Services.instance().runStore(), Wiring.transitions(), Services.instance().github(),
-                Wiring.gateCollector(), new RepoConfigLoader(Services.instance().github()), Wiring.usageMeter(), Services.instance().clock());
+                Wiring.gateCollector(), new RepoConfigLoader(Services.instance().github()), Wiring.usageMeter(), Services.instance().clock(),
+                Wiring::lessonRecorder);
     }
 
     EvaluateGatesTask(RunStore store, RunTransitions transitions, GitHubClient github, GateCollector collector, RepoConfigLoader configLoader,
-                      UsageMeter usage, Clock clock) {
+                      UsageMeter usage, Clock clock, java.util.function.Supplier<io.agentic.functions.learning.LessonRecorder> recorder) {
         this.store = store;
         this.transitions = transitions;
         this.github = github;
@@ -54,6 +56,7 @@ public class EvaluateGatesTask implements RequestHandler<Map<String, Object>, Ma
         this.configLoader = configLoader;
         this.usage = usage;
         this.clock = clock;
+        this.recorder = recorder;
     }
 
     @Override
@@ -77,10 +80,29 @@ public class EvaluateGatesTask implements RequestHandler<Map<String, Object>, Ma
         PullRequest pr = github.getPullRequest(run.repo(), prNumber);
         GateFindings findings = collector.collect(run.repo(), prNumber, pr.headSha(), config, run.usage().gateIterations())
                 .withScopeViolations(scopeGuard.check(config.budgets(), github.listFiles(run.repo(), prNumber)));
+        GateFindings previous = store.lastFindings(key, GateFindings.class).orElse(null);
         store.setLastFindings(key, findings);
+        recordResolved(run, prNumber, previous, findings);
         findings.agentPremiumRequests().forEach((checkRunId, n) -> usage.recordGateAgentRequests(key, checkRunId, n));
         recordSnapshot(run, prNumber, pr.headSha(), findings);
         return evaluator.decide(findings, run.humanOverride(), true);
+    }
+
+    private void recordResolved(Run run, int prNumber, GateFindings previous, GateFindings current) {
+        if (previous == null || previous.blocking().isEmpty()) {
+            return;
+        }
+        java.util.Set<String> now = current.blocking().stream().map(io.agentic.functions.gates.GateFinding::id).collect(java.util.stream.Collectors.toSet());
+        List<io.agentic.functions.gates.GateFinding> resolved = previous.blocking().stream().filter(f -> !now.contains(f.id())).toList();
+        if (resolved.isEmpty()) {
+            return;
+        }
+        try {
+            var commits = SnapshotBuilder.commitsAfter(github.listCommits(run.repo(), prNumber), previous.headSha());
+            recorder.get().recordResolved(run.repo(), resolved, commits, "https://github.com/" + run.repo() + "/pull/" + prNumber);
+        } catch (RuntimeException e) {
+            System.err.println("WARN resolved-failure lessons failed for " + run.ticketKey() + ": " + e.getMessage());
+        }
     }
 
     private void recordSnapshot(Run run, int prNumber, String headSha, GateFindings findings) {

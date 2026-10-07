@@ -36,8 +36,9 @@ class HumanFixTaskTest {
     private final GitHubClient github = mock(GitHubClient.class);
     private final CopilotClient copilot = mock(CopilotClient.class);
     private final UsageMeter usage = mock(UsageMeter.class);
+    private final io.agentic.functions.learning.LessonRecorder recorder = mock(io.agentic.functions.learning.LessonRecorder.class);
     private final io.agentic.functions.ops.KillSwitchGuard killSwitch = mock(io.agentic.functions.ops.KillSwitchGuard.class);
-    private final HumanFixTask task = new HumanFixTask(store, mock(RunTransitions.class), github, copilot, usage, Clock.fixed(NOW, ZoneOffset.UTC), killSwitch);
+    private final HumanFixTask task = new HumanFixTask(store, mock(RunTransitions.class), github, copilot, usage, Clock.fixed(NOW, ZoneOffset.UTC), killSwitch, () -> recorder);
 
     @org.junit.jupiter.api.BeforeEach
     void noKillSwitch() {
@@ -61,5 +62,6 @@ class HumanFixTaskTest {
         assertThat(task.handleRequest(Map.of("ticketKey", "ABC-1", "signal", Map.of("reviewId", 9001)), null)).containsEntry("decision", "CONTINUE");
         verify(copilot).instruct(eq("acme/payments"), eq(418), argThat(t -> t.contains("Please refactor") && t.contains("Use repo")));
         verify(usage).recordHumanIteration("ABC-1");
+        verify(recorder).recordReviewComments(eq("acme/payments"), org.mockito.ArgumentMatchers.anyList(), eq("https://github.com/acme/payments/pull/418"));
     }
 }

@@ -34,6 +34,12 @@ public class GitHubEventRouter {
     private final AbortService abortService;
     private final RepoConfigLoader configLoader;
     private final UsageMeter usage;
+    private java.util.function.Supplier<io.agentic.memory.LessonRepository> lessons;
+
+    public GitHubEventRouter withLessons(java.util.function.Supplier<io.agentic.memory.LessonRepository> lessons) {
+        this.lessons = lessons;
+        return this;
+    }
 
     public GitHubEventRouter(RunStore runStore, GitHubClient github, Identities identities, AbortService abortService, RepoConfigLoader configLoader,
                              UsageMeter usage) {
@@ -109,6 +115,10 @@ public class GitHubEventRouter {
     private List<RoutedSignal> prClosed(String repo, JsonNode payload) {
         JsonNode pr = payload.path("pull_request");
         int number = pr.path("number").asInt();
+        if (hasLabel(pr, io.agentic.functions.learning.PromotionJob.LABEL)) {
+            promotionClosed(pr);
+            return List.of();
+        }
         Optional<Run> found = runStore.findByPr(repo, number);
         if (found.isEmpty() || found.get().state().isTerminal()) {
             return List.of();
@@ -120,6 +130,27 @@ public class GitHubEventRouter {
         }
         abortService.abort(run.ticketKey(), Actor.HUMAN, merged ? "PR merged outside the agent flow" : "PR closed manually");
         return List.of();
+    }
+
+    private static boolean hasLabel(JsonNode pr, String label) {
+        for (JsonNode l : pr.path("labels")) {
+            if (label.equals(l.path("name").asText())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void promotionClosed(JsonNode pr) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("Lesson-Id: ([0-9a-f-]{36})").matcher(pr.path("body").asText(""));
+        if (!m.find() || lessons == null) {
+            return;
+        }
+        if (pr.path("merged").asBoolean()) {
+            lessons.get().setStatus(m.group(1), "promoted");
+        } else {
+            lessons.get().addTag(m.group(1), io.agentic.functions.learning.PromotionPolicy.REJECTED_TAG);
+        }
     }
 
     private List<RoutedSignal> checksCompleted(String repo, String sha, JsonNode pullRequests) {

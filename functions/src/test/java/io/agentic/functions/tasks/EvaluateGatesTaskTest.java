@@ -34,6 +34,7 @@ class EvaluateGatesTaskTest {
     private GateCollector collector;
     private RepoConfigLoader loader;
     private UsageMeter usage;
+    private io.agentic.functions.learning.LessonRecorder recorder = mock(io.agentic.functions.learning.LessonRecorder.class);
     private EvaluateGatesTask task;
 
     @BeforeEach
@@ -47,7 +48,7 @@ class EvaluateGatesTaskTest {
         when(github.listCommits(anyString(), anyInt())).thenReturn(List.of());
         when(store.string(anyString(), anyString())).thenReturn(Optional.empty());
         task = new EvaluateGatesTask(store, mock(RunTransitions.class), github, collector, loader, usage,
-                java.time.Clock.fixed(java.time.Instant.parse("2026-10-07T13:00:00Z"), java.time.ZoneOffset.UTC));
+                java.time.Clock.fixed(java.time.Instant.parse("2026-10-07T13:00:00Z"), java.time.ZoneOffset.UTC), () -> recorder);
     }
 
     @Test
@@ -98,6 +99,18 @@ class EvaluateGatesTaskTest {
                 new io.agentic.core.budget.RunUsage(0, 0, 0, 0, java.time.Instant.parse("2026-10-01T00:00:00Z")), false);
         when(store.get("ABC-1")).thenReturn(Optional.of(old));
         assertThat(task.handleRequest(Map.of("ticketKey", "ABC-1"), null)).containsEntry("decision", "ESCALATE");
+    }
+
+    @Test
+    void resolvedFailuresBecomeLessons() {
+        when(store.get("ABC-1")).thenReturn(Optional.of(run("ABC-1", RunState.FIXING, 101, 418)));
+        when(github.getPullRequest("acme/payments", 418)).thenReturn(new PullRequest(418, "open", true, false, "sha2", "b", "Copilot", "u", 1, 1, 1, "n"));
+        var old = new io.agentic.functions.gates.GateFinding("ci", "ci:build:a", "src/A.java", 1, "boom");
+        when(store.lastFindings("ABC-1", GateFindings.class)).thenReturn(Optional.of(new GateFindings("sha1", List.of(old), List.of(), List.of())));
+        when(collector.collect(anyString(), anyInt(), anyString(), any(), anyInt())).thenReturn(GateFindings.empty("sha2"));
+        when(github.listFiles("acme/payments", 418)).thenReturn(List.of());
+        task.handleRequest(Map.of("ticketKey", "ABC-1"), null);
+        verify(recorder).recordResolved(eq("acme/payments"), eq(List.of(old)), any(), eq("https://github.com/acme/payments/pull/418"));
     }
 
     @Test

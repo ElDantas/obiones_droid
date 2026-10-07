@@ -57,6 +57,13 @@ public final class Wiring {
         return new UsageMeter(Services.instance().runStore(), Wiring::slackNotifier);
     }
 
+    public static io.agentic.functions.learning.LessonRecorder lessonRecorder() {
+        Services s = Services.instance();
+        return new io.agentic.functions.learning.LessonRecorder(
+                new io.agentic.functions.learning.LessonExtractor(s.textModel(), () -> s.params().find("/agentic/bedrock/textModelId").orElse("")),
+                s.lessons());
+    }
+
     public static GateCollector gateCollector() {
         return new GateCollector(Services.instance().github(), identities());
     }
@@ -73,7 +80,8 @@ public final class Wiring {
 
     public static GitHubEventRouter router() {
         Services s = Services.instance();
-        return new GitHubEventRouter(s.runStore(), s.github(), identities(), abortService(), new io.agentic.functions.readiness.RepoConfigLoader(s.github()), usageMeter());
+        return new GitHubEventRouter(s.runStore(), s.github(), identities(), abortService(), new io.agentic.functions.readiness.RepoConfigLoader(s.github()), usageMeter())
+                .withLessons(s::lessons);
     }
 
     public static SignalDispatcher dispatcher() {

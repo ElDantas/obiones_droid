@@ -187,6 +187,55 @@ public class GitHubClient {
         return numbers;
     }
 
+    public String defaultBranch(String repo) {
+        return api.http.get(api.url("/repos/" + repo), api.headers()).path("default_branch").asText("main");
+    }
+
+    public String branchSha(String repo, String branch) {
+        return api.http.get(api.url("/repos/" + repo + "/git/ref/heads/" + branch), api.headers()).at("/object/sha").asText();
+    }
+
+    public void createBranch(String repo, String branch, String fromSha) {
+        api.http.post(api.url("/repos/" + repo + "/git/refs"), api.headers(), Map.of("ref", "refs/heads/" + branch, "sha", fromSha));
+    }
+
+    public Optional<String> fileSha(String repo, String path, String ref) {
+        try {
+            JsonNode res = api.http.get(api.url("/repos/" + repo + "/contents/" + path + "?ref=" + URLEncoder.encode(ref, StandardCharsets.UTF_8)), api.headers());
+            return Optional.ofNullable(res.path("sha").asText(null));
+        } catch (HttpFailure e) {
+            if (e.status() == 404) {
+                return Optional.empty();
+            }
+            throw e;
+        }
+    }
+
+    public void putFile(String repo, String path, String branch, String content, String message, String existingSha) {
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("message", message);
+        body.put("content", Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8)));
+        body.put("branch", branch);
+        if (existingSha != null) {
+            body.put("sha", existingSha);
+        }
+        api.http.put(api.url("/repos/" + repo + "/contents/" + path), api.headers(), body);
+    }
+
+    public int openPullRequest(String repo, String head, String base, String title, String body) {
+        return api.http.post(api.url("/repos/" + repo + "/pulls"), api.headers(),
+                Map.of("head", head, "base", base, "title", title, "body", body)).path("number").asInt();
+    }
+
+    public void addLabels(String repo, int number, List<String> labels) {
+        api.http.post(api.url("/repos/" + repo + "/issues/" + number + "/labels"), api.headers(), Map.of("labels", labels));
+    }
+
+    public int countOpenPullRequestsMentioning(String repo, String text) {
+        String q = URLEncoder.encode("repo:" + repo + " is:pr is:open \"" + text + "\"", StandardCharsets.UTF_8);
+        return api.http.get(api.url("/search/issues?q=" + q), api.headers()).path("total_count").asInt();
+    }
+
     public void markReadyForReview(String repo, int pr) {
         String nodeId = getPullRequest(repo, pr).nodeId();
         api.graphql("""

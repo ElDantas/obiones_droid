@@ -138,6 +138,9 @@ public class OrchestratorStack extends Stack {
                 .stringValue(machine.getStateMachineArn())
                 .build();
 
+        schedule("PromotionJob", "io.agentic.functions.learning.PromotionJob", "0", "6");
+        schedule("DecayJob", "io.agentic.functions.learning.DecayJob", "30", "6");
+
         for (JavaFunction f : functions) {
             Grants.common(f.function());
             Grants.bedrock(f.function());
@@ -151,6 +154,16 @@ public class OrchestratorStack extends Stack {
 
     public List<JavaFunction> functions() {
         return functions;
+    }
+
+    private void schedule(String id, String handlerClass, String minute, String hour) {
+        JavaFunction fn = new JavaFunction(this, id + "Fn", handlerClass, env, settings);
+        functions.add(fn);
+        software.amazon.awscdk.services.events.Rule.Builder.create(this, id + "Schedule")
+                .schedule(software.amazon.awscdk.services.events.Schedule.cron(
+                        software.amazon.awscdk.services.events.CronOptions.builder().minute(minute).hour(hour).build()))
+                .targets(List.of(new software.amazon.awscdk.services.events.targets.LambdaFunction(fn.target())))
+                .build();
     }
 
     private JavaFunction function(String id, String handler) {

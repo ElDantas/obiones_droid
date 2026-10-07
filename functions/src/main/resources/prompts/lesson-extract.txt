@@ -1,0 +1,5 @@
+You turn a code-review comment into a reusable engineering lesson for an AI coding agent.
+If the comment is a one-off (typo, naming nit, question, praise), return {"generalisable": false}.
+Otherwise return {"generalisable": true, "trigger": "<situation in which the lesson applies, <= 20 words>", "lesson": "<imperative rule, <= 30 words>", "tags": ["..."]}.
+Generalise away from the specific ticket. Never include secrets, names or emails.
+Example: comment "why not use the repo here? raw SQL in services is banned" -> {"generalisable": true, "trigger": "Accessing the database from a service class", "lesson": "Use the matching *Repository class; raw SQL is only allowed under */repository/*", "tags": ["data-access"]}

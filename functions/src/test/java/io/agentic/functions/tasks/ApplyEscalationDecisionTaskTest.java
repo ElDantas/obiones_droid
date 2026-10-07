@@ -22,7 +22,8 @@ import static org.mockito.Mockito.when;
 class ApplyEscalationDecisionTaskTest {
     private final RunStore store = mock(RunStore.class);
     private final RunTransitions transitions = mock(RunTransitions.class);
-    private final ApplyEscalationDecisionTask task = new ApplyEscalationDecisionTask(store, transitions);
+    private final io.agentic.functions.learning.LessonRecorder recorder = mock(io.agentic.functions.learning.LessonRecorder.class);
+    private final ApplyEscalationDecisionTask task = new ApplyEscalationDecisionTask(store, transitions, () -> recorder);
 
     private Map<String, Object> input(String decision) {
         return Map.of("ticketKey", "ABC-1", "signal", Map.of("decision", decision, "by", "U1"));
@@ -33,6 +34,7 @@ class ApplyEscalationDecisionTaskTest {
         when(store.get("ABC-1")).thenReturn(Optional.of(run("ABC-1", RunState.ESCALATED, 101, null, RunState.CODING)));
         assertThat(task.handleRequest(input("RESUME"), null)).containsEntry("decision", "RESUME_CODING");
         verify(transitions).moveTo("ABC-1", RunState.CODING, Actor.HUMAN, "Escalation resolved: RESUME");
+        verify(recorder).recordPostMortem(org.mockito.ArgumentMatchers.eq("acme/payments"), anyString(), anyString(), org.mockito.ArgumentMatchers.eq("RESUME"), anyString());
     }
 
     @Test

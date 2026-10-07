@@ -178,6 +178,14 @@ class GitHubEventRouterTest {
     }
 
     @Test
+    void mergedPromotionPrMarksLessonPromoted() {
+        io.agentic.memory.LessonRepository lessons = mock(io.agentic.memory.LessonRepository.class);
+        router.withLessons(() -> lessons).route("pull_request", json("github/pull_request.closed.promotion.json"));
+        verify(lessons).setStatus("11111111-1111-1111-1111-111111111111", "promoted");
+        verify(abort, never()).abort(anyString(), org.mockito.ArgumentMatchers.any(), anyString());
+    }
+
+    @Test
     void humanPushSetsOverride() {
         when(github.findOpenPullRequestsByHead("acme/payments", "copilot/fix-101")).thenReturn(List.of(418));
         when(store.findByPr("acme/payments", 418)).thenReturn(Optional.of(run("ABC-1", RunState.FIXING, 101, 418)));

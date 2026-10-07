@@ -31,16 +31,17 @@ public class HumanFixTask implements RequestHandler<Map<String, Object>, Map<Str
     private final UsageMeter usage;
     private final Clock clock;
     private final KillSwitchGuard killSwitch;
+    private final java.util.function.Supplier<io.agentic.functions.learning.LessonRecorder> recorder;
     private final BudgetEvaluator budgets = new BudgetEvaluator();
     private final FeedbackComposer feedback = new FeedbackComposer();
 
     public HumanFixTask() {
         this(Services.instance().runStore(), Wiring.transitions(), Services.instance().github(), Services.instance().copilot(),
-                Wiring.usageMeter(), Services.instance().clock(), new KillSwitchGuard(Services.instance().params()));
+                Wiring.usageMeter(), Services.instance().clock(), new KillSwitchGuard(Services.instance().params()), Wiring::lessonRecorder);
     }
 
     HumanFixTask(RunStore store, RunTransitions transitions, GitHubClient github, CopilotClient copilot, UsageMeter usage, Clock clock,
-                 KillSwitchGuard killSwitch) {
+                 KillSwitchGuard killSwitch, java.util.function.Supplier<io.agentic.functions.learning.LessonRecorder> recorder) {
         this.store = store;
         this.transitions = transitions;
         this.github = github;
@@ -48,6 +49,7 @@ public class HumanFixTask implements RequestHandler<Map<String, Object>, Map<Str
         this.usage = usage;
         this.clock = clock;
         this.killSwitch = killSwitch;
+        this.recorder = recorder;
     }
 
     @Override
@@ -72,6 +74,11 @@ public class HumanFixTask implements RequestHandler<Map<String, Object>, Map<Str
         String body = github.listReviews(run.repo(), run.prNumber()).stream()
                 .filter(r -> r.id() == reviewId).map(Review::body).findFirst().orElse("");
         copilot.instruct(run.repo(), run.prNumber(), feedback.forHumanReview(comments, body));
+        try {
+            recorder.get().recordReviewComments(run.repo(), comments, "https://github.com/" + run.repo() + "/pull/" + run.prNumber());
+        } catch (RuntimeException e) {
+            System.err.println("WARN lesson recording failed for " + key + ": " + e.getMessage());
+        }
         usage.recordHumanIteration(key);
         usage.recordCopilotSession(key);
         return TaskSupport.decision("CONTINUE", "Review feedback sent to Copilot");

@@ -15,14 +15,16 @@ import java.util.Map;
 public class ApplyEscalationDecisionTask implements RequestHandler<Map<String, Object>, Map<String, Object>> {
     private final RunStore store;
     private final RunTransitions transitions;
+    private final java.util.function.Supplier<io.agentic.functions.learning.LessonRecorder> recorder;
 
     public ApplyEscalationDecisionTask() {
-        this(Services.instance().runStore(), Wiring.transitions());
+        this(Services.instance().runStore(), Wiring.transitions(), Wiring::lessonRecorder);
     }
 
-    ApplyEscalationDecisionTask(RunStore store, RunTransitions transitions) {
+    ApplyEscalationDecisionTask(RunStore store, RunTransitions transitions, java.util.function.Supplier<io.agentic.functions.learning.LessonRecorder> recorder) {
         this.store = store;
         this.transitions = transitions;
+        this.recorder = recorder;
     }
 
     @Override
@@ -34,6 +36,13 @@ public class ApplyEscalationDecisionTask implements RequestHandler<Map<String, O
             store.saveBudgets(key, run.budgets().raisedBy(1.5));
         }
         RunState from = run.escalatedFrom() == null ? RunState.FIXING : run.escalatedFrom();
+        try {
+            recorder.get().recordPostMortem(run.repo(), String.valueOf(run.escalation().getOrDefault("reason", "")),
+                    String.valueOf(run.escalation().getOrDefault("diagnosis", "")), decision,
+                    run.prNumber() == null ? "" : "https://github.com/" + run.repo() + "/pull/" + run.prNumber());
+        } catch (RuntimeException e) {
+            System.err.println("WARN post-mortem lesson failed for " + key + ": " + e.getMessage());
+        }
         boolean beforeCoding = from == RunState.READINESS || from == RunState.CONTEXT;
         String result = switch (decision) {
             case "ABORT" -> "ABORT";

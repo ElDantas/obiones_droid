@@ -1,0 +1,41 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/rest/api/3/issue/[A-Z0-9]+-[0-9]+/transitions"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "transitions": [
+        {
+          "id": "11",
+          "to": {
+            "name": "In Progress"
+          }
+        },
+        {
+          "id": "21",
+          "to": {
+            "name": "In Review"
+          }
+        },
+        {
+          "id": "31",
+          "to": {
+            "name": "Done"
+          }
+        },
+        {
+          "id": "41",
+          "to": {
+            "name": "Blocked (Agent)"
+          }
+        }
+      ]
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

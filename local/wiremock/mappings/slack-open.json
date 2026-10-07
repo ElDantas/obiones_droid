@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/api/conversations.open"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "ok": true,
+      "channel": {
+        "id": "D123"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

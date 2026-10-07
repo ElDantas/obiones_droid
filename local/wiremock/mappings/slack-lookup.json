@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/api/users.lookupByEmail"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "ok": true,
+      "user": {
+        "id": "U123"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

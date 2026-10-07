@@ -1,0 +1,28 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/repos/acme/payments/commits/abc123/check-runs"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "total_count": 1,
+      "check_runs": [
+        {
+          "id": 7,
+          "name": "build",
+          "status": "completed",
+          "conclusion": "success",
+          "output": {
+            "summary": "ok",
+            "text": null
+          }
+        }
+      ]
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 5
+}

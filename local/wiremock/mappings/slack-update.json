@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/api/chat.update"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "ok": true
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

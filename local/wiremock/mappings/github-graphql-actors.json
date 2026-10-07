@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/graphql",
+    "bodyPatterns": [
+      {
+        "contains": "suggestedActors"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "data": {
+        "repository": {
+          "issue": {
+            "id": "I_101"
+          },
+          "suggestedActors": {
+            "nodes": [
+              {
+                "login": "copilot-swe-agent",
+                "__typename": "Bot",
+                "id": "BOT_COPILOT"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

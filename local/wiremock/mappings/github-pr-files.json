@@ -1,0 +1,20 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/repos/acme/payments/pulls/418/files"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": [
+      {
+        "filename": "src/main/java/Order.java",
+        "additions": 10,
+        "deletions": 2
+      }
+    ],
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

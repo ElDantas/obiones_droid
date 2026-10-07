@@ -1,0 +1,31 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/repos/acme/payments/pulls/418"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "number": 418,
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "head": {
+        "sha": "abc123",
+        "ref": "copilot/fix-101"
+      },
+      "user": {
+        "login": "Copilot"
+      },
+      "html_url": "https://github.com/acme/payments/pull/418",
+      "additions": 10,
+      "deletions": 2,
+      "changed_files": 1,
+      "node_id": "PR_418"
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

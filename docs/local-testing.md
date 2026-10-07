@@ -62,6 +62,25 @@ curl -s localhost:8080/health
 
 Routes whose handler does not exist yet return `501`. The runner points the AWS SDK at LocalStack (`aws.endpointUrl`), sets `AGENTIC_LLM_MODE=fake`, and points GitHub, Jira, Slack and Confluence at WireMock on `localhost:8089`.
 
+## End-to-end scenarios
+
+```bash
+local/e2e.sh                     # start stack, deploy, run all *E2E tests
+SKIP_DEPLOY=true local/e2e.sh    # reuse the current LocalStack deployment
+```
+
+The scenarios in `local-runner/src/test/java/io/agentic/local/e2e` drive the real state machine and Lambdas in LocalStack. WireMock (`local/wiremock/mappings`) stands in for Jira, GitHub and Slack, and signed webhooks stand in for Copilot.
+
+| Scenario | Expected |
+|---|---|
+| Happy path | Execution `SUCCEEDED`, run `DONE`, one issue created, Copilot assigned once, PR marked ready, Jira `In Review` then `Done` |
+| Early signal | Checks completing before the wait is registered still reach `HUMAN_REVIEW` |
+| Vague ticket | `NEEDS_INFO`, Jira comment with "Clarify:", no issue created |
+| Double fire | One execution, one issue |
+| Failing checks | `FIXING`, one consolidated `@copilot` comment posted with the service-user token |
+| Ambiguous PR | `ESCALATED` |
+| Unflag | `ABORTED`, Copilot PR closed |
+
 ## Cloud-only checks
 
 - Real Copilot coding agent behaviour and webhook timing
@@ -69,6 +88,7 @@ Routes whose handler does not exist yet return `501`. The runner points the AWS 
 - Slack interactivity from the real Slack client
 - Bedrock output quality (clarity scoring, lesson extraction, diagnosis, rerank)
 - SnapStart, IAM permissions and QuickSight dashboards
+- `StopExecution` on an execution waiting for a task token: LocalStack 4.14 returns 200 but leaves it `RUNNING`; the local E2E asserts the run is `ABORTED` and the PR closed instead
 
 ## Notes
 

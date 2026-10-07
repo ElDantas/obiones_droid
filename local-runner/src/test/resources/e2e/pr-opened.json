@@ -1,0 +1,2 @@
+{"action":"opened","repository":{"full_name":"acme/payments"},
+ "pull_request":{"number":${pr},"user":{"login":"Copilot"},"head":{"sha":"abc123","ref":"copilot/fix-101"}}}

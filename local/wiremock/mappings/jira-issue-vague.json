@@ -1,0 +1,58 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/rest/api/3/issue/VAGUE-1"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "key": "VAGUE-1",
+      "fields": {
+        "summary": "Improve discounts",
+        "customfield_10123": "acme/payments",
+        "customfield_10016": 3,
+        "components": [],
+        "labels": [
+          "Agentic AI Approved"
+        ],
+        "reporter": {
+          "emailAddress": "rep@example.com"
+        },
+        "assignee": {
+          "emailAddress": "dev@example.com"
+        },
+        "description": {
+          "type": "doc",
+          "version": 1,
+          "content": [
+            {
+              "type": "heading",
+              "attrs": {
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Acceptance Criteria"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "VAGUE make discounts better"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

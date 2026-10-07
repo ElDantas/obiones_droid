@@ -1,0 +1,10 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/rest/api/3/issue/[A-Z0-9]+-[0-9]+/transitions"
+  },
+  "response": {
+    "status": 204
+  },
+  "priority": 1
+}

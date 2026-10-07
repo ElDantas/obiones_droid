@@ -1,0 +1,40 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/graphql",
+    "bodyPatterns": [
+      {
+        "contains": "timelineItems"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "data": {
+        "repository": {
+          "issue": {
+            "timelineItems": {
+              "nodes": [
+                {
+                  "__typename": "ConnectedEvent",
+                  "subject": {
+                    "number": 418,
+                    "state": "OPEN",
+                    "repository": {
+                      "nameWithOwner": "acme/payments"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

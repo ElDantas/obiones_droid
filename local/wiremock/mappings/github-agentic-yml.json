@@ -1,0 +1,10 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/repos/acme/payments/contents/.github/agentic.yml"
+  },
+  "response": {
+    "status": 404
+  },
+  "priority": 1
+}

@@ -1,0 +1,2 @@
+{"action":"closed","repository":{"full_name":"acme/payments"},
+ "pull_request":{"number":418,"merged":${merged},"user":{"login":"Copilot"}}}

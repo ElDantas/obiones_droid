@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "PATCH",
+    "urlPath": "/repos/acme/payments/pulls/418"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "number": 418,
+      "state": "closed"
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

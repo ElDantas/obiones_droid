@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/repos/acme/payments/issues/[0-9]+/comments"
+  },
+  "response": {
+    "status": 201,
+    "jsonBody": {
+      "id": 1
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

@@ -1,0 +1,91 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/rest/api/3/issue/E2E-[0-9]+"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "key": "E2E-1",
+      "fields": {
+        "summary": "Cap discounts at 50%",
+        "customfield_10123": "acme/payments",
+        "customfield_10016": 3,
+        "components": [],
+        "labels": [
+          "Agentic AI Approved"
+        ],
+        "reporter": {
+          "emailAddress": "rep@example.com"
+        },
+        "assignee": {
+          "emailAddress": "dev@example.com"
+        },
+        "description": {
+          "type": "doc",
+          "version": 1,
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Orders can receive discounts above 50% when vouchers stack."
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "attrs": {
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Acceptance Criteria"
+                }
+              ]
+            },
+            {
+              "type": "bulletList",
+              "content": [
+                {
+                  "type": "listItem",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Total discount never exceeds 50%"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "listItem",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "30% + 40% vouchers on 100 gives 50"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 5
+}

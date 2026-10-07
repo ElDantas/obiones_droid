@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/app/installations/[0-9]+/access_tokens"
+  },
+  "response": {
+    "status": 201,
+    "jsonBody": {
+      "token": "ghs_local",
+      "expires_at": "2099-01-01T00:00:00Z"
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

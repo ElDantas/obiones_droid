@@ -18,3 +18,8 @@ Set `gateAgents: true` in `.github/agentic.yml` only after the gate workflow is 
 Repos can add forbidden paths but cannot remove the platform defaults.
 
 After merging, a platform owner runs `tools/onboard-repo.sh owner/repo` to allow-list the repository.
+
+## Memory (MCP)
+
+`mcp-config.json` is pasted into the repository's **Settings → Copilot → Coding agent → MCP configuration** (not committed). Replace the API URL and repo, and add the Copilot environment secret `COPILOT_MCP_AGENTIC_TOKEN` with the `agentic/mcp` bearer token.
+

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "agentic-memory": {
+      "type": "http",
+      "url": "https://REPLACE_WITH_API_URL/mcp",
+      "headers": {
+        "Authorization": "Bearer $COPILOT_MCP_AGENTIC_TOKEN",
+        "X-Agentic-Repo": "REPLACE_WITH_OWNER/REPO"
+      },
+      "tools": ["search_memory", "record_lesson"]
+    }
+  }
+}

@@ -16,9 +16,13 @@ import io.agentic.integrations.llm.TextModel;
 import io.agentic.integrations.slack.SlackClient;
 import io.agentic.integrations.llm.Embeddings;
 import io.agentic.memory.BedrockEmbedder;
+import io.agentic.memory.BedrockReranker;
+import io.agentic.memory.HybridSearch;
+import io.agentic.memory.Reranker;
 import io.agentic.memory.LessonRepository;
 import io.agentic.memory.MemoryExecutors;
 import io.agentic.memory.SqlExecutor;
+import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
@@ -48,6 +52,7 @@ public class Services {
     private final Supplier<SqlExecutor> memorySql = memo(this::buildMemorySql);
     private final Supplier<Embeddings> embeddings = memo(this::buildEmbeddings);
     private final Supplier<LessonRepository> lessons = memo(() -> new LessonRepository(memorySql.get(), embeddings.get()));
+    private final Supplier<HybridSearch> hybridSearch = memo(() -> new HybridSearch(lessons.get(), embeddings.get(), buildReranker()));
 
     public static synchronized Services instance() {
         if (instance == null) {
@@ -112,6 +117,10 @@ public class Services {
         return lessons.get();
     }
 
+    public HybridSearch hybridSearch() {
+        return hybridSearch.get();
+    }
+
     public String githubApiUrl() {
         return Env.get("GITHUB_API_URL", "https://api.github.com");
     }
@@ -159,6 +168,17 @@ public class Services {
             case "MEMORY_SECRET_ARN" -> params().find("/agentic/memory/secretArn").orElse(null);
             default -> null;
         }));
+    }
+
+    private Reranker buildReranker() {
+        if (Env.fakeLlm()) {
+            return Reranker.identity();
+        }
+        return new BedrockReranker(BedrockAgentRuntimeClient.create(), () -> {
+            String model = params().find("/agentic/bedrock/rerankModelId").orElse("amazon.rerank-v1:0");
+            String region = Env.get("AWS_REGION", "eu-west-2");
+            return model.startsWith("arn:") ? model : "arn:aws:bedrock:" + region + "::foundation-model/" + model;
+        });
     }
 
     private Embeddings buildEmbeddings() {

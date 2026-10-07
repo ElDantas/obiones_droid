@@ -24,6 +24,11 @@ Replace every section below with the facts for this repository. Keep it short; C
 
 - `infra/**`, `**/migrations/**`, `.github/workflows/**`, secrets and `.env*` files.
 
+## Memory
+
+- Before changing an unfamiliar area, call `search_memory` with a short description of the change.
+- When a reviewer teaches you a rule that will apply again, call `record_lesson`.
+
 ## Definition of done
 
 - All tests pass.

@@ -37,6 +37,10 @@ public final class AgenticApp {
             Grants.common(api.route("JiraEvents", "io.agentic.functions.ingress.JiraEventHandler", HttpMethod.POST, "/jira/events").function());
             Grants.common(api.route("GitHubWebhook", "io.agentic.functions.ingress.GitHubWebhookHandler", HttpMethod.POST, "/github/webhook").function());
             Grants.common(api.route("SlackActions", "io.agentic.functions.escalation.SlackActionsHandler", HttpMethod.POST, "/slack/actions").function());
+            JavaFunction mcp = api.route("Mcp", "io.agentic.functions.memory.McpHandler", HttpMethod.POST, "/mcp");
+            Grants.common(mcp.function());
+            Grants.bedrock(mcp.function());
+            Grants.memory(mcp.function());
         }
         Tags.of(app).add("project", "agentic");
     }

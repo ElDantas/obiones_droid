@@ -51,6 +51,8 @@ public class LocalApiServer {
         defaultProperty("JIRA_BASE_URL", "JIRA_BASE_URL", "http://localhost:8089");
         defaultProperty("SLACK_API_URL", "SLACK_API_URL", "http://localhost:8089/api/");
         defaultProperty("CONFLUENCE_BASE_URL", "CONFLUENCE_BASE_URL", "http://localhost:8089");
+        defaultProperty("MEMORY_MODE", "MEMORY_MODE", "jdbc");
+        defaultProperty("MEMORY_JDBC_URL", "MEMORY_JDBC_URL", "jdbc:postgresql://localhost:55432/agentic?user=agentic&password=agentic");
     }
 
     private static void defaultProperty(String property, String envName, String fallback) {

@@ -170,6 +170,10 @@ final class E2eDriver implements AutoCloseable {
         throw new AssertionError("Timed out waiting for " + what.get());
     }
 
+    String apiUrl(String path) {
+        return api(path);
+    }
+
     private String api(String path) {
         return "http://localhost:" + server.port() + path;
     }

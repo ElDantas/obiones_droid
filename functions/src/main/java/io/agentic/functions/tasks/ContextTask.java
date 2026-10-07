@@ -9,7 +9,6 @@ import io.agentic.functions.config.Wiring;
 import io.agentic.functions.context.IssueComposer;
 import io.agentic.functions.context.Lesson;
 import io.agentic.functions.context.LessonProvider;
-import io.agentic.functions.context.NoLessons;
 import io.agentic.functions.notify.RunTransitions;
 import io.agentic.functions.readiness.RepoConfig;
 import io.agentic.functions.readiness.RepoConfigLoader;
@@ -33,7 +32,8 @@ public class ContextTask implements RequestHandler<Map<String, Object>, Map<Stri
 
     public ContextTask() {
         this(Services.instance().runStore(), Wiring.transitions(), Services.instance().jira(), Services.instance().github(),
-                new RepoConfigLoader(Services.instance().github()), new NoLessons());
+                new RepoConfigLoader(Services.instance().github()),
+                new io.agentic.functions.memory.MemoryLessonProvider(Services.instance().hybridSearch(), Services.instance().lessons(), Services.instance().clock()));
     }
 
     ContextTask(RunStore store, RunTransitions transitions, JiraClient jira, GitHubClient github, RepoConfigLoader configLoader, LessonProvider lessons) {

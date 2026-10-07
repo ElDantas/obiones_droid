@@ -6,6 +6,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.agentic.functions.config.Services;
+import io.agentic.functions.config.Wiring;
 import io.agentic.functions.metrics.Metrics;
 import io.agentic.functions.run.SignalDispatcher;
 import io.agentic.functions.store.RunStore;

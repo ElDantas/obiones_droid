@@ -6,7 +6,6 @@ import io.agentic.functions.ingress.Identities;
 import io.agentic.functions.store.RunStore;
 import io.agentic.integrations.github.GitHubClient;
 import io.agentic.integrations.github.model.PullRequest;
-import io.agentic.integrations.jira.JiraClient;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.sfn.SfnClient;
 import software.amazon.awssdk.services.sfn.model.StopExecutionRequest;
@@ -26,19 +25,17 @@ class AbortServiceTest {
     private final RunStore store = mock(RunStore.class);
     private final SfnClient sfn = mock(SfnClient.class);
     private final GitHubClient github = mock(GitHubClient.class);
-    private final JiraClient jira = mock(JiraClient.class);
     private final AbortService.Mover mover = mock(AbortService.Mover.class);
-    private final AbortService service = new AbortService(store, sfn, github, jira, new Identities("agentic-svc", "agentic-bot[bot]"), mover);
+    private final AbortService service = new AbortService(store, sfn, github, new Identities("agentic-svc", "agentic-bot[bot]"), mover);
 
     @Test
-    void abortsStopsClosesCopilotPrAndComments() {
+    void abortsStopsAndClosesCopilotPr() {
         when(store.get("ABC-1")).thenReturn(Optional.of(run("ABC-1", RunState.FIXING, 101, 418)));
         when(github.getPullRequest("acme/payments", 418)).thenReturn(new PullRequest(418, "open", true, false, "a", "b", "Copilot", "u", 0, 0, 0, "n"));
         assertThat(service.abort("ABC-1", Actor.HUMAN, "Label removed")).isTrue();
         verify(sfn).stopExecution(any(StopExecutionRequest.class));
         verify(github).closePullRequest("acme/payments", 418);
         verify(mover).moveTo("ABC-1", RunState.ABORTED, Actor.HUMAN, "Label removed");
-        verify(jira).comment("ABC-1", "Agent run aborted: Label removed");
     }
 
     @Test

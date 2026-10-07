@@ -7,7 +7,6 @@ import io.agentic.functions.store.Run;
 import io.agentic.functions.store.RunStore;
 import io.agentic.integrations.github.GitHubClient;
 import io.agentic.integrations.github.model.PullRequest;
-import io.agentic.integrations.jira.JiraClient;
 import software.amazon.awssdk.services.sfn.SfnClient;
 import software.amazon.awssdk.services.sfn.model.StopExecutionRequest;
 
@@ -21,15 +20,13 @@ public class AbortService {
     private final RunStore runStore;
     private final SfnClient sfn;
     private final GitHubClient github;
-    private final JiraClient jira;
     private final Identities identities;
     private final Mover mover;
 
-    public AbortService(RunStore runStore, SfnClient sfn, GitHubClient github, JiraClient jira, Identities identities, Mover mover) {
+    public AbortService(RunStore runStore, SfnClient sfn, GitHubClient github, Identities identities, Mover mover) {
         this.runStore = runStore;
         this.sfn = sfn;
         this.github = github;
-        this.jira = jira;
         this.identities = identities;
         this.mover = mover;
     }
@@ -62,11 +59,6 @@ public class AbortService {
             }
         }
         mover.moveTo(ticketKey, RunState.ABORTED, actor, reason);
-        try {
-            jira.comment(ticketKey, "Agent run aborted: " + reason);
-        } catch (RuntimeException e) {
-            System.err.println("Jira comment failed for " + ticketKey + ": " + e.getMessage());
-        }
         return true;
     }
 }

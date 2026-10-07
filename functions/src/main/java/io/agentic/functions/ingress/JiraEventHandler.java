@@ -7,6 +7,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.agentic.core.run.Actor;
 import io.agentic.functions.config.Services;
+import io.agentic.functions.config.Wiring;
 import io.agentic.functions.run.AbortService;
 import io.agentic.functions.run.RunStarter;
 import io.agentic.integrations.http.Json;

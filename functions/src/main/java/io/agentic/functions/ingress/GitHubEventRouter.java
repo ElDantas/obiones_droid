@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.agentic.core.run.Actor;
 import io.agentic.core.run.RunState;
+import io.agentic.functions.readiness.RepoConfigLoader;
 import io.agentic.functions.run.AbortService;
 import io.agentic.functions.store.Run;
 import io.agentic.functions.store.RunStore;
@@ -30,12 +31,14 @@ public class GitHubEventRouter {
     private final GitHubClient github;
     private final Identities identities;
     private final AbortService abortService;
+    private final RepoConfigLoader configLoader;
 
-    public GitHubEventRouter(RunStore runStore, GitHubClient github, Identities identities, AbortService abortService) {
+    public GitHubEventRouter(RunStore runStore, GitHubClient github, Identities identities, AbortService abortService, RepoConfigLoader configLoader) {
         this.runStore = runStore;
         this.github = github;
         this.identities = identities;
         this.abortService = abortService;
+        this.configLoader = configLoader;
     }
 
     public List<RoutedSignal> route(String eventName, JsonNode payload) {
@@ -126,15 +129,21 @@ public class GitHubEventRouter {
             if (!sha.equals(pr.headSha())) {
                 continue;
             }
-            if (allChecksComplete(github.listCheckRuns(repo, sha))) {
+            boolean gateAgents = configLoader.load(repo, found.get().budgets()).gateAgents();
+            if (allChecksComplete(github.listCheckRuns(repo, sha), gateAgents)) {
                 signals.add(signal(found.get().ticketKey(), WaitKind.CHECKS_COMPLETE, Map.of("headSha", sha)));
             }
         }
         return signals;
     }
 
-    protected boolean allChecksComplete(List<CheckRun> runs) {
-        return !runs.isEmpty() && runs.stream().allMatch(r -> "completed".equals(r.status()));
+    static final List<String> AGENT_CHECKS = List.of("agentic/ac-review", "agentic/qa");
+
+    boolean allChecksComplete(List<CheckRun> runs, boolean gateAgents) {
+        if (runs.isEmpty() || !runs.stream().allMatch(r -> "completed".equals(r.status()))) {
+            return false;
+        }
+        return !gateAgents || AGENT_CHECKS.stream().allMatch(name -> runs.stream().anyMatch(r -> name.equals(r.name())));
     }
 
     private List<RoutedSignal> reviewSubmitted(String repo, JsonNode payload) {

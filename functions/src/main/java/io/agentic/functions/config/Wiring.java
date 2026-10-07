@@ -68,7 +68,7 @@ public final class Wiring {
 
     public static GitHubEventRouter router() {
         Services s = Services.instance();
-        return new GitHubEventRouter(s.runStore(), s.github(), identities(), abortService());
+        return new GitHubEventRouter(s.runStore(), s.github(), identities(), abortService(), new io.agentic.functions.readiness.RepoConfigLoader(s.github()));
     }
 
     public static SignalDispatcher dispatcher() {

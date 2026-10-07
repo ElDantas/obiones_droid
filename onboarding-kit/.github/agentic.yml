@@ -15,5 +15,6 @@ reviewers:
   - replace-with-github-login
 escalationApprovers:
   - replace-with-email@example.com
+gateAgents: true
 requiredChecks:
   - build

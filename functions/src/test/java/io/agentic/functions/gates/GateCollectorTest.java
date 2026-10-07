@@ -62,6 +62,29 @@ class GateCollectorTest {
     }
 
     @Test
+    void failingAgentVerdictYieldsBlockingFindingsPerFinding() {
+        String text = "```agentic-verdict\n{\"gate\":\"qa\",\"pass\":false,\"summary\":\"2 gaps\",\"findings\":["
+                + "{\"id\":\"QA-1\",\"message\":\"Add test A\"},{\"id\":\"QA-2\",\"message\":\"Add test B\"}]}\n```";
+        when(github.listCheckRuns("acme/payments", "sha")).thenReturn(List.of(new CheckRun(9, "agentic/qa", "completed", "failure", "2 gaps", text)));
+        assertThat(collector.collect("acme/payments", 418, "sha", requiredBuild, 0).blocking())
+                .extracting(GateFinding::id).containsExactly("qa:QA-1", "qa:QA-2");
+    }
+
+    @Test
+    void missingVerdictIsBlocking() {
+        when(github.listCheckRuns("acme/payments", "sha")).thenReturn(List.of(new CheckRun(9, "agentic/ac-review", "completed", "failure", "x", null)));
+        assertThat(collector.collect("acme/payments", 418, "sha", requiredBuild, 0).blocking())
+                .singleElement().satisfies(f -> assertThat(f.message()).isEqualTo("ac-review: verdict missing or invalid"));
+    }
+
+    @Test
+    void passingVerdictAddsNothing() {
+        String text = "```agentic-verdict\n{\"gate\":\"ac-review\",\"pass\":true,\"summary\":\"ok\",\"findings\":[]}\n```";
+        when(github.listCheckRuns("acme/payments", "sha")).thenReturn(List.of(new CheckRun(9, "agentic/ac-review", "completed", "success", "ok", text)));
+        assertThat(collector.collect("acme/payments", 418, "sha", requiredBuild, 0).blocking()).isEmpty();
+    }
+
+    @Test
     void copilotReviewBlocksOnlyOnFirstPass() {
         when(github.listCheckRuns("acme/payments", "sha")).thenReturn(List.of());
         when(github.listReviewComments("acme/payments", 418)).thenReturn(List.of(

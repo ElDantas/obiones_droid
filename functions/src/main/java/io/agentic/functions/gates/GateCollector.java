@@ -43,6 +43,25 @@ public class GateCollector {
     }
 
     protected void collectAgentic(CheckRun run, List<GateFinding> blocking) {
+        if (!run.name().startsWith(AGENTIC_PREFIX) || !"completed".equals(run.status())) {
+            return;
+        }
+        String gate = run.name().substring(AGENTIC_PREFIX.length());
+        java.util.Optional<VerdictParser.Verdict> verdict = VerdictParser.parse(run.outputText());
+        if (verdict.isEmpty()) {
+            blocking.add(new GateFinding(gate, gate + ":invalid-verdict", null, null, gate + ": verdict missing or invalid"));
+            return;
+        }
+        if (verdict.get().pass()) {
+            return;
+        }
+        if (verdict.get().findings().isEmpty()) {
+            blocking.add(new GateFinding(gate, gate + ":failed", null, null, verdict.get().summary()));
+            return;
+        }
+        for (VerdictParser.Finding f : verdict.get().findings()) {
+            blocking.add(new GateFinding(gate, gate + ":" + f.id(), f.file(), f.line(), f.message()));
+        }
     }
 
     private boolean isRequiredCi(String name, RepoConfig config) {

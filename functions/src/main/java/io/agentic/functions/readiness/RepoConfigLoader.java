@@ -39,7 +39,8 @@ public class RepoConfigLoader {
         merged = new Budgets(merged.maxGateIterations(), merged.maxHumanIterations(), merged.premiumSoft(), merged.premiumHard(),
                 merged.codingTimeout(), merged.maxRunAge(), merged.actionsMinutesSoft(), merged.actionsMinutesHard(),
                 merged.maxDiffLines(), merged.maxDiffFiles(), new ArrayList<>(forbidden));
-        return new RepoConfig(merged, strings(root.get("reviewers")), strings(root.get("escalationApprovers")), strings(root.get("requiredChecks")));
+        return new RepoConfig(merged, strings(root.get("reviewers")), strings(root.get("escalationApprovers")), strings(root.get("requiredChecks")),
+                Boolean.TRUE.equals(root.get("gateAgents")));
     }
 
     private static List<String> strings(Object v) {

@@ -1,0 +1,84 @@
+name: agentic-gates
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+jobs:
+  review:
+    if: startsWith(github.head_ref, 'copilot/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: [ac-reviewer, qa-agent]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install -g @github/copilot
+      - name: Run gate agent
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.AGENTIC_COPILOT_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          copilot -p "Review PR #${PR_NUMBER} as instructed by your agent profile and write verdict.json" \
+            --agent "${{ matrix.agent }}" \
+            --allow-all-tools \
+            --deny-tool 'shell(git push)' --deny-tool 'shell(git commit)' \
+            --deny-tool 'shell(gh api)' --deny-tool 'shell(gh pr merge)' --deny-tool 'shell(gh pr review)' \
+            --deny-tool 'shell(gh pr comment)' --deny-tool 'shell(gh issue comment)' \
+            --no-color -s || true
+          if [ ! -f verdict.json ] || ! jq -e '.gate and (.pass|type=="boolean")' verdict.json >/dev/null 2>&1; then
+            gate=$([ "${{ matrix.agent }}" = "ac-reviewer" ] && echo ac-review || echo qa)
+            echo "{\"gate\":\"$gate\",\"pass\":false,\"summary\":\"Agent produced no valid verdict\",\"findings\":[],\"premiumRequests\":1}" > verdict.json
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verdict-${{ matrix.agent }}
+          path: verdict.json
+  publish:
+    needs: review
+    if: always() && startsWith(github.head_ref, 'copilot/')
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: [ac-reviewer, qa-agent]
+    steps:
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: verdict-${{ matrix.agent }}
+      - name: Publish check run
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const gate = '${{ matrix.agent }}' === 'ac-reviewer' ? 'ac-review' : 'qa';
+            let v = { gate, pass: false, summary: 'Gate job failed before producing a verdict', findings: [], premiumRequests: 0 };
+            if (fs.existsSync('verdict.json')) {
+              v = JSON.parse(fs.readFileSync('verdict.json', 'utf8'));
+            }
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'agentic/' + gate,
+              head_sha: context.payload.pull_request.head.sha,
+              status: 'completed',
+              conclusion: v.pass ? 'success' : 'failure',
+              output: {
+                title: v.summary,
+                summary: v.summary,
+                text: '```agentic-verdict\n' + JSON.stringify(v, null, 2) + '\n```'
+              }
+            });

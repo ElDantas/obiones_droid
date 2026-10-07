@@ -2,6 +2,9 @@ package io.agentic.functions.ingress;
 
 import io.agentic.core.run.Actor;
 import io.agentic.core.run.RunState;
+import io.agentic.core.budget.Budgets;
+import io.agentic.functions.readiness.RepoConfig;
+import io.agentic.functions.readiness.RepoConfigLoader;
 import io.agentic.functions.run.AbortService;
 import io.agentic.functions.store.RunStore;
 import io.agentic.functions.store.WaitKind;
@@ -28,6 +31,7 @@ class GitHubEventRouterTest {
     private RunStore store;
     private GitHubClient github;
     private AbortService abort;
+    private RepoConfigLoader loader;
     private GitHubEventRouter router;
 
     @BeforeEach
@@ -35,7 +39,9 @@ class GitHubEventRouterTest {
         store = mock(RunStore.class);
         github = mock(GitHubClient.class);
         abort = mock(AbortService.class);
-        router = new GitHubEventRouter(store, github, new Identities("agentic-svc", "agentic-bot[bot]"), abort);
+        loader = mock(RepoConfigLoader.class);
+        when(loader.load(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any())).thenReturn(new RepoConfig(Budgets.defaults(), List.of(), List.of(), List.of(), false));
+        router = new GitHubEventRouter(store, github, new Identities("agentic-svc", "agentic-bot[bot]"), abort, loader);
     }
 
     private static PullRequest pr(String sha) {
@@ -107,6 +113,22 @@ class GitHubEventRouterTest {
         when(store.findByPr("acme/payments", 418)).thenReturn(Optional.of(run("ABC-1", RunState.CODING, 101, 418)));
         when(github.getPullRequest("acme/payments", 418)).thenReturn(pr("newer"));
         assertThat(router.route("check_suite", json("github/check_suite.completed.json"))).isEmpty();
+    }
+
+    @Test
+    void gateAgentsEnabledWaitsForBothAgentChecks() {
+        when(loader.load(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any())).thenReturn(new RepoConfig(Budgets.defaults(), List.of(), List.of(), List.of(), true));
+        when(store.findByPr("acme/payments", 418)).thenReturn(Optional.of(run("ABC-1", RunState.CODING, 101, 418)));
+        when(github.getPullRequest("acme/payments", 418)).thenReturn(pr("abc123"));
+        when(github.listCheckRuns("acme/payments", "abc123")).thenReturn(List.of(
+                new CheckRun(1, "build", "completed", "success", null, null),
+                new CheckRun(2, "agentic/ac-review", "completed", "success", null, null)));
+        assertThat(router.route("check_suite", json("github/check_suite.completed.json"))).isEmpty();
+        when(github.listCheckRuns("acme/payments", "abc123")).thenReturn(List.of(
+                new CheckRun(1, "build", "completed", "success", null, null),
+                new CheckRun(2, "agentic/ac-review", "completed", "success", null, null),
+                new CheckRun(3, "agentic/qa", "completed", "failure", null, null)));
+        assertThat(router.route("check_suite", json("github/check_suite.completed.json"))).hasSize(1);
     }
 
     @Test

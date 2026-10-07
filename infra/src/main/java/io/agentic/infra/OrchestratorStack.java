@@ -140,6 +140,9 @@ public class OrchestratorStack extends Stack {
 
         schedule("PromotionJob", "io.agentic.functions.learning.PromotionJob", "0", "6");
         schedule("DecayJob", "io.agentic.functions.learning.DecayJob", "30", "6");
+        schedule("ConfluenceSyncJob", "io.agentic.functions.knowledge.ConfluenceSyncJob", "0", "2");
+        schedule("JiraSyncJob", "io.agentic.functions.knowledge.JiraSyncJob", "15", "2");
+        scheduleWeekly("WeeklyDigestJob", "io.agentic.functions.digest.WeeklyDigestJob", "0", "8", "MON");
 
         for (JavaFunction f : functions) {
             Grants.common(f.function());
@@ -162,6 +165,16 @@ public class OrchestratorStack extends Stack {
         software.amazon.awscdk.services.events.Rule.Builder.create(this, id + "Schedule")
                 .schedule(software.amazon.awscdk.services.events.Schedule.cron(
                         software.amazon.awscdk.services.events.CronOptions.builder().minute(minute).hour(hour).build()))
+                .targets(List.of(new software.amazon.awscdk.services.events.targets.LambdaFunction(fn.target())))
+                .build();
+    }
+
+    private void scheduleWeekly(String id, String handlerClass, String minute, String hour, String weekDay) {
+        JavaFunction fn = new JavaFunction(this, id + "Fn", handlerClass, env, settings);
+        functions.add(fn);
+        software.amazon.awscdk.services.events.Rule.Builder.create(this, id + "Schedule")
+                .schedule(software.amazon.awscdk.services.events.Schedule.cron(
+                        software.amazon.awscdk.services.events.CronOptions.builder().minute(minute).hour(hour).weekDay(weekDay).build()))
                 .targets(List.of(new software.amazon.awscdk.services.events.targets.LambdaFunction(fn.target())))
                 .build();
     }

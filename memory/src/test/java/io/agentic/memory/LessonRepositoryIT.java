@@ -85,6 +85,25 @@ class LessonRepositoryIT {
     }
 
     @Test
+    void upsertBySourceUpdatesInPlace() {
+        String first = repo.upsertBySource("confluence:1:0", new LessonDraft(null, List.of(), null, null, List.of(), "adr", "ADR-1", "v1", "https://wiki/1", "shared"));
+        String second = repo.upsertBySource("confluence:1:0", new LessonDraft(null, List.of(), null, null, List.of(), "adr", "ADR-1", "v2", "https://wiki/1", "shared"));
+        assertThat(second).isEqualTo(first);
+        assertThat(repo.get(first).orElseThrow().lesson()).isEqualTo("v2");
+        assertThat(sql.query("SELECT count(*) AS n FROM lessons", java.util.Map.of()).get(0).get("n")).isEqualTo(1L);
+    }
+
+    @Test
+    void weekActivityListsNewAndPromoted() {
+        String id = repo.upsert(draft("acme/payments", "Formatting money", "Use BigDecimal", "repo")).id();
+        repo.setStatus(id, "promoted");
+        var activity = repo.weekActivity(Instant.now().minusSeconds(3600), Instant.now().plusSeconds(3600));
+        assertThat(activity.get("new")).containsExactly("Formatting money → Use BigDecimal");
+        assertThat(activity.get("promoted")).hasSize(1);
+        assertThat(activity.get("expired")).isEmpty();
+    }
+
+    @Test
     void migrationsAreIdempotent() {
         assertThat(Migrations.apply(sql)).isEmpty();
     }

@@ -107,6 +107,11 @@ public class FoundationStack extends Stack {
         p.put("/agentic/slack/channels/ops", "#agentic-ops");
         p.put("/agentic/github/serviceUser", "agentic-svc");
         p.put("/agentic/docs/agentReadyUrl", "unset");
+        p.put("/agentic/confluence/syncSpaces", "[]");
+        p.put("/agentic/confluence/syncLabels", "[\"adr\",\"spec\"]");
+        p.put("/agentic/confluence/digestSpace", "unset");
+        p.put("/agentic/confluence/digestParentId", "unset");
+        p.put("/agentic/jira/syncProjects", "[]");
         return p;
     }
 

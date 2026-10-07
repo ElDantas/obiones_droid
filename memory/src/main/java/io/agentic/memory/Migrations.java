@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class Migrations {
-    public static final List<String> FILES = List.of("V1__lessons.sql");
+    public static final List<String> FILES = List.of("V1__lessons.sql", "V2__source_ref.sql");
 
     private Migrations() {
     }

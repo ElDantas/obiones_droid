@@ -73,6 +73,46 @@ public class LessonRepository {
         return new WriteResult((String) rows.get(0).get("id"), true);
     }
 
+    public String upsertBySource(String sourceRef, LessonDraft draft) {
+        String trigger = Scrubber.scrub(draft.trigger());
+        String lesson = Scrubber.scrub(draft.lesson());
+        Map<String, Object> p = new HashMap<>();
+        p.put("ref", sourceRef);
+        p.put("repo", draft.repo());
+        p.put("paths", pgArray(draft.paths()));
+        p.put("component", draft.component());
+        p.put("language", draft.language());
+        p.put("tags", pgArray(draft.tags()));
+        p.put("kind", draft.kind());
+        p.put("trigger", trigger);
+        p.put("lesson", lesson);
+        p.put("evidence", pgArray(draft.evidence() == null ? List.of() : List.of(draft.evidence())));
+        p.put("e", vector(embeddings.embed(trigger + "\n" + lesson)));
+        p.put("scope", draft.scope() == null ? "repo" : draft.scope());
+        List<Map<String, Object>> rows = sql.query("""
+                INSERT INTO lessons (source_ref, repo, paths, component, language, tags, kind, trigger, lesson, evidence, embedding, scope)
+                VALUES (:ref, CAST(:repo AS text), CAST(:paths AS text[]), CAST(:component AS text), CAST(:language AS text), CAST(:tags AS text[]),
+                        :kind, :trigger, :lesson, CAST(:evidence AS text[]), CAST(:e AS vector), :scope)
+                ON CONFLICT (source_ref) DO UPDATE SET repo = EXCLUDED.repo, paths = EXCLUDED.paths, component = EXCLUDED.component,
+                        language = EXCLUDED.language, tags = EXCLUDED.tags, kind = EXCLUDED.kind, trigger = EXCLUDED.trigger,
+                        lesson = EXCLUDED.lesson, evidence = EXCLUDED.evidence, embedding = EXCLUDED.embedding, scope = EXCLUDED.scope
+                RETURNING CAST(id AS text) AS id""", p);
+        return (String) rows.get(0).get("id");
+    }
+
+    public Map<String, List<String>> weekActivity(Instant from, Instant to) {
+        Map<String, Object> p = Map.of("f", from.getEpochSecond(), "t", to.getEpochSecond());
+        Map<String, List<String>> out = new HashMap<>();
+        out.put("new", texts(sql.query("SELECT trigger, lesson FROM lessons WHERE kind NOT IN ('adr','spec') AND created_at >= to_timestamp(:f) AND created_at < to_timestamp(:t) ORDER BY created_at", p)));
+        out.put("promoted", texts(sql.query("SELECT trigger, lesson FROM lessons WHERE status = 'promoted' AND status_changed_at >= to_timestamp(:f) AND status_changed_at < to_timestamp(:t)", p)));
+        out.put("expired", texts(sql.query("SELECT trigger, lesson FROM lessons WHERE status = 'expired' AND status_changed_at >= to_timestamp(:f) AND status_changed_at < to_timestamp(:t)", p)));
+        return out;
+    }
+
+    private static List<String> texts(List<Map<String, Object>> rows) {
+        return rows.stream().map(r -> r.get("trigger") + " → " + r.get("lesson")).toList();
+    }
+
     public Optional<LessonRecord> get(String id) {
         List<Map<String, Object>> rows = sql.query("SELECT " + COLUMNS + " FROM lessons WHERE id = CAST(:id AS uuid)", Map.of("id", id));
         return rows.isEmpty() ? Optional.empty() : Optional.of(toRecord(rows.get(0)));
@@ -99,7 +139,7 @@ public class LessonRepository {
     }
 
     public void setStatus(String id, String status) {
-        sql.update("UPDATE lessons SET status = :s WHERE id = CAST(:id AS uuid)", Map.of("s", status, "id", id));
+        sql.update("UPDATE lessons SET status = :s, status_changed_at = now() WHERE id = CAST(:id AS uuid)", Map.of("s", status, "id", id));
     }
 
     public void addTag(String id, String tag) {

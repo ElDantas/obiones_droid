@@ -79,3 +79,16 @@ DELETE FROM lessons WHERE id = '<uuid>';
 ```
 
 Run it through `aws rds-data execute-statement` as above and note the request in `docs/decisions.md`.
+
+## Knowledge sync
+
+| Job | Schedule (UTC) | Source | Stored as |
+|---|---|---|---|
+| `ConfluenceSyncJob` | daily 02:00 | Pages in `/agentic/confluence/syncSpaces` with labels `/agentic/confluence/syncLabels` (default `adr`, `spec`) modified since `/agentic/confluence/lastSync` | One row per ~3,200-character chunk, `source_ref = confluence:<pageId>:<chunk>`, kind `adr`/`spec`, scope `shared` |
+| `JiraSyncJob` | daily 02:15 | Tickets resolved in the last day in `/agentic/jira/syncProjects` with a Target repo | `source_ref = jira:<KEY>`, kind `spec`, scope `repo` |
+
+Re-syncing a page or ticket updates its rows in place (`upsertBySource`), so there are no duplicates.
+
+## Weekly digest
+
+`WeeklyDigestJob` runs Mondays 08:00 UTC for the previous ISO week: runs started, merged, escalated (with reasons), median lead time to PR ready, premium requests, Actions minutes, and new / promoted / expired lessons. It posts to `#agentic-dev` and, when `/agentic/confluence/digestSpace` and `/agentic/confluence/digestParentId` are set, creates or updates the page "Agentic digest <week>".

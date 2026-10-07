@@ -16,7 +16,7 @@ public final class Grants {
         String account = stack.getAccount();
         fn.addToRolePolicy(PolicyStatement.Builder.create()
                 .actions(List.of("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem",
-                        "dynamodb:Query", "dynamodb:ConditionCheckItem"))
+                        "dynamodb:Query", "dynamodb:Scan", "dynamodb:ConditionCheckItem"))
                 .resources(List.of(
                         "arn:aws:dynamodb:" + region + ":" + account + ":table/agentic-*",
                         "arn:aws:dynamodb:" + region + ":" + account + ":table/agentic-*/index/*"))
@@ -28,6 +28,10 @@ public final class Grants {
         fn.addToRolePolicy(PolicyStatement.Builder.create()
                 .actions(List.of("ssm:GetParameter"))
                 .resources(List.of("arn:aws:ssm:" + region + ":" + account + ":parameter/agentic/*"))
+                .build());
+        fn.addToRolePolicy(PolicyStatement.Builder.create()
+                .actions(List.of("ssm:PutParameter"))
+                .resources(List.of("arn:aws:ssm:" + region + ":" + account + ":parameter/agentic/confluence/lastSync"))
                 .build());
         fn.addToRolePolicy(PolicyStatement.Builder.create()
                 .actions(List.of("states:StartExecution", "states:StopExecution", "states:SendTaskSuccess", "states:SendTaskFailure"))

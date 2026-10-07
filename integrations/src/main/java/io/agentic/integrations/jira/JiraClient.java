@@ -61,6 +61,28 @@ public class JiraClient {
                 confluenceLinks(key));
     }
 
+    public List<String> searchKeys(String jql) {
+        List<String> keys = new ArrayList<>();
+        String token = null;
+        do {
+            Map<String, Object> body = new java.util.HashMap<>();
+            body.put("jql", jql);
+            body.put("fields", List.of("summary"));
+            body.put("maxResults", 100);
+            if (token != null) {
+                body.put("nextPageToken", token);
+            }
+            JsonNode res = http.post(baseUrl + "/rest/api/3/search/jql", headers(), body);
+            res.path("issues").forEach(i -> keys.add(i.path("key").asText()));
+            token = res.hasNonNull("nextPageToken") ? res.get("nextPageToken").asText() : null;
+        } while (token != null);
+        return keys;
+    }
+
+    public String resolution(String key) {
+        return http.get(baseUrl + "/rest/api/3/issue/" + key + "?fields=resolution", headers()).at("/fields/resolution/name").asText("");
+    }
+
     public void transition(String key, String statusName) {
         JsonNode res = http.get(baseUrl + "/rest/api/3/issue/" + key + "/transitions", headers());
         for (JsonNode t : res.path("transitions")) {

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.agentic.functions.store.RunStore;
 import io.agentic.integrations.bedrock.BedrockText;
 import io.agentic.integrations.config.Secrets;
+import io.agentic.integrations.confluence.ConfluenceClient;
 import io.agentic.integrations.github.CopilotClient;
 import io.agentic.integrations.github.GitHubAppAuth;
 import io.agentic.integrations.github.GitHubClient;
@@ -115,6 +116,20 @@ public class Services {
 
     public LessonRepository lessons() {
         return lessons.get();
+    }
+
+    public ConfluenceClient confluence() {
+        JsonNode j = secrets().getJson("agentic/jira");
+        String base = Env.find("CONFLUENCE_BASE_URL").orElse(j.path("baseUrl").asText());
+        return new ConfluenceClient(http, base, j.path("email").asText(), j.path("apiToken").asText());
+    }
+
+    public void putParam(String name, String value) {
+        ssm.get().putParameter(b -> b.name(name).value(value).type(software.amazon.awssdk.services.ssm.model.ParameterType.STRING).overwrite(true));
+    }
+
+    public software.amazon.awssdk.services.dynamodb.DynamoDbClient dynamo() {
+        return dynamo.get();
     }
 
     public HybridSearch hybridSearch() {

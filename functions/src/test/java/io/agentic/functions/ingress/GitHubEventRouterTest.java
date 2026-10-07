@@ -8,6 +8,7 @@ import io.agentic.functions.readiness.RepoConfigLoader;
 import io.agentic.functions.run.AbortService;
 import io.agentic.functions.store.RunStore;
 import io.agentic.functions.store.WaitKind;
+import io.agentic.functions.usage.UsageMeter;
 import io.agentic.integrations.github.GitHubClient;
 import io.agentic.integrations.github.model.CheckRun;
 import io.agentic.integrations.github.model.PullRequest;
@@ -32,6 +33,7 @@ class GitHubEventRouterTest {
     private GitHubClient github;
     private AbortService abort;
     private RepoConfigLoader loader;
+    private UsageMeter usage;
     private GitHubEventRouter router;
 
     @BeforeEach
@@ -41,7 +43,8 @@ class GitHubEventRouterTest {
         abort = mock(AbortService.class);
         loader = mock(RepoConfigLoader.class);
         when(loader.load(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any())).thenReturn(new RepoConfig(Budgets.defaults(), List.of(), List.of(), List.of(), false));
-        router = new GitHubEventRouter(store, github, new Identities("agentic-svc", "agentic-bot[bot]"), abort, loader);
+        usage = mock(UsageMeter.class);
+        router = new GitHubEventRouter(store, github, new Identities("agentic-svc", "agentic-bot[bot]"), abort, loader, usage);
     }
 
     private static PullRequest pr(String sha) {
@@ -159,6 +162,19 @@ class GitHubEventRouterTest {
         when(store.findByPr("acme/payments", 418)).thenReturn(Optional.of(run("ABC-1", RunState.CODING, 101, 418)));
         assertThat(router.route("pull_request", json("github/pull_request.closed.merged.json"))).isEmpty();
         verify(abort).abort(eq("ABC-1"), eq(Actor.HUMAN), anyString());
+    }
+
+    @Test
+    void workflowRunOnAgentPrRecordsMinutes() {
+        when(store.findByPr("acme/payments", 418)).thenReturn(Optional.of(run("ABC-1", RunState.FIXING, 101, 418)));
+        router.route("workflow_run", json("github/workflow_run.completed.json"));
+        verify(usage).recordActionsMinutes("ABC-1", "555", 3);
+    }
+
+    @Test
+    void workflowRunWithoutPrDoesNothing() {
+        router.route("workflow_run", json("github/workflow_run.unrelated.json"));
+        verify(usage, never()).recordActionsMinutes(anyString(), anyString(), org.mockito.ArgumentMatchers.anyInt());
     }
 
     @Test

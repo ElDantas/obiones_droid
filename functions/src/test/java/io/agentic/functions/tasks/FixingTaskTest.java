@@ -66,6 +66,41 @@ class FixingTaskTest {
         verify(usage).recordCopilotSession("ABC-1");
     }
 
+    private static io.agentic.functions.store.Run withSnapshots(io.agentic.functions.store.Run r, List<io.agentic.core.loop.IterationSnapshot> snaps) {
+        return new io.agentic.functions.store.Run(r.ticketKey(), r.runId(), r.repo(), r.state(), r.issueNumber(), r.prNumber(), r.executionArn(),
+                r.slackThreadTs(), r.budgets(), r.usage(), snaps, r.humanOverride(), r.injectedLessonIds(), r.escalation(), r.escalatedFrom());
+    }
+
+    private static List<io.agentic.core.loop.IterationSnapshot> sameFailureTwice() {
+        var a = new io.agentic.core.loop.IterationSnapshot(1, "h1", java.util.Set.of("ci:build:OrderServiceTest.discount_rounding"), java.util.Set.of("src/Order.java"), java.util.Set.of("src/Order.java"), Map.of());
+        var b = new io.agentic.core.loop.IterationSnapshot(2, "h1", java.util.Set.of("ci:build:OrderServiceTest.discount_rounding"), java.util.Set.of("src/Order.java"), java.util.Set.of("src/Order.java"), Map.of());
+        return List.of(a, b);
+    }
+
+    @Test
+    void repeatedFingerprintEscalatesWithoutComment() {
+        when(store.get("ABC-1")).thenReturn(Optional.of(withSnapshots(withUsage(run("ABC-1", RunState.FIXING, 101, 418), new RunUsage(1, 0, 5, 10, NOW), false), sameFailureTwice())));
+        Map<String, Object> out = task.handleRequest(Map.of("ticketKey", "ABC-1"), null);
+        assertThat(out).containsEntry("decision", "ESCALATE");
+        assertThat((String) out.get("reason")).startsWith("Same failure repeated");
+        verify(copilot, never()).instruct(anyString(), anyInt(), anyString());
+    }
+
+    @Test
+    void loopOverrideSkipsDetectionOnceAndClearsFlag() {
+        when(store.get("ABC-1")).thenReturn(Optional.of(withSnapshots(withUsage(run("ABC-1", RunState.FIXING, 101, 418), new RunUsage(1, 0, 5, 10, NOW), false), sameFailureTwice())));
+        when(store.flag("ABC-1", "loopOverride")).thenReturn(true);
+        assertThat(task.handleRequest(Map.of("ticketKey", "ABC-1"), null)).containsEntry("decision", "CONTINUE");
+        verify(store).setFlag("ABC-1", "loopOverride", false);
+    }
+
+    @Test
+    void softPremiumWarnsOnce() {
+        when(store.get("ABC-1")).thenReturn(Optional.of(withUsage(run("ABC-1", RunState.FIXING, 101, 418), new RunUsage(1, 0, 30, 10, NOW), false)));
+        task.handleRequest(Map.of("ticketKey", "ABC-1"), null);
+        verify(usage).warnOnce(eq("ABC-1"), eq("budget-warn"), org.mockito.ArgumentMatchers.startsWith("⚠️ Approaching limits: Premium requests 30/50"));
+    }
+
     @Test
     void humanOverrideStopsFixing() {
         when(store.get("ABC-1")).thenReturn(Optional.of(withUsage(run("ABC-1", RunState.FIXING, 101, 418), new RunUsage(0, 0, 0, 0, NOW), true)));

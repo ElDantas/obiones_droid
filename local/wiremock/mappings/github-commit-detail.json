@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/repos/acme/payments/commits/abc123"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "sha": "abc123",
+      "files": [
+        {
+          "filename": "src/main/java/Order.java"
+        }
+      ]
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

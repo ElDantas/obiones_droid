@@ -26,11 +26,15 @@ public class GateCollector {
     public GateFindings collect(String repo, int prNumber, String headSha, RepoConfig config, int gateIteration) {
         List<GateFinding> blocking = new ArrayList<>();
         List<GateFinding> advisory = new ArrayList<>();
+        java.util.Map<String, Integer> agentPremium = new java.util.LinkedHashMap<>();
         for (CheckRun run : github.listCheckRuns(repo, headSha)) {
             if (isRequiredCi(run.name(), config) && run.conclusion() != null && FAILED.contains(run.conclusion())) {
                 blocking.addAll(ciFindings(repo, run));
             } else {
                 collectAgentic(run, blocking);
+                if (run.name().startsWith(AGENTIC_PREFIX)) {
+                    VerdictParser.parse(run.outputText()).ifPresent(v -> agentPremium.put(Long.toString(run.id()), v.premiumRequests()));
+                }
             }
         }
         for (ReviewComment c : github.listReviewComments(repo, prNumber)) {
@@ -39,7 +43,7 @@ public class GateCollector {
                 (gateIteration == 0 ? blocking : advisory).add(f);
             }
         }
-        return new GateFindings(headSha, blocking, advisory, List.of());
+        return new GateFindings(headSha, blocking, advisory, List.of(), agentPremium);
     }
 
     protected void collectAgentic(CheckRun run, List<GateFinding> blocking) {

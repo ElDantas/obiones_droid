@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/repos/acme/payments/contents/src/main/java/Order.java"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "content": "Y2xhc3MgT3JkZXIge30="
+    },
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

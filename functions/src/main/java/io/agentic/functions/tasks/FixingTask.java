@@ -4,6 +4,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import io.agentic.core.budget.BudgetEvaluator;
 import io.agentic.core.budget.BudgetVerdict;
+import io.agentic.core.loop.LoopDetector;
 import io.agentic.core.run.Actor;
 import io.agentic.core.run.RunState;
 import io.agentic.functions.config.Services;
@@ -18,6 +19,7 @@ import io.agentic.functions.usage.UsageMeter;
 import io.agentic.integrations.github.CopilotClient;
 
 import java.time.Clock;
+import java.util.Optional;
 import java.util.Map;
 
 public class FixingTask implements RequestHandler<Map<String, Object>, Map<String, Object>> {
@@ -29,10 +31,11 @@ public class FixingTask implements RequestHandler<Map<String, Object>, Map<Strin
     private final Clock clock;
     private final BudgetEvaluator budgets = new BudgetEvaluator();
     private final FeedbackComposer feedback = new FeedbackComposer();
+    private final LoopDetector loopDetector = new LoopDetector();
 
     public FixingTask() {
         this(Services.instance().runStore(), Wiring.transitions(), Services.instance().copilot(),
-                new UsageMeter(Services.instance().runStore()), new RepoConfigLoader(Services.instance().github()), Services.instance().clock());
+                Wiring.usageMeter(), new RepoConfigLoader(Services.instance().github()), Services.instance().clock());
     }
 
     FixingTask(RunStore store, RunTransitions transitions, CopilotClient copilot, UsageMeter usage, RepoConfigLoader configLoader, Clock clock) {
@@ -55,6 +58,17 @@ public class FixingTask implements RequestHandler<Map<String, Object>, Map<Strin
         BudgetVerdict verdict = budgets.evaluate(run.budgets(), run.usage(), clock.instant(), BudgetEvaluator.IterationKind.GATE);
         if (verdict.isBreach()) {
             return TaskSupport.decision("ESCALATE", String.join("; ", verdict.reasons()));
+        }
+        if (verdict.level() == BudgetVerdict.Level.WARN) {
+            usage.warnOnce(key, "budget-warn", "⚠️ Approaching limits: " + String.join("; ", verdict.reasons()));
+        }
+        if (store.flag(key, "loopOverride")) {
+            store.setFlag(key, "loopOverride", false);
+        } else {
+            Optional<String> loop = loopDetector.detect(run.snapshots());
+            if (loop.isPresent()) {
+                return TaskSupport.decision("ESCALATE", loop.get());
+            }
         }
         GateFindings findings = store.lastFindings(key, GateFindings.class).orElse(GateFindings.empty(null));
         copilot.instruct(run.repo(), run.prNumber(), feedback.forGates(findings, configLoader.load(run.repo(), run.budgets())));

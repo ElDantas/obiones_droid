@@ -25,7 +25,7 @@ public class AssignCopilotTask implements RequestHandler<Map<String, Object>, Ma
 
     public AssignCopilotTask() {
         this(Services.instance().runStore(), Wiring.transitions(), Services.instance().copilot(),
-                new UsageMeter(Services.instance().runStore()), Wiring.slackNotifier());
+                Wiring.usageMeter(), Wiring.slackNotifier());
     }
 
     AssignCopilotTask(RunStore store, RunTransitions transitions, CopilotClient copilot, UsageMeter usage, SlackNotifier slack) {

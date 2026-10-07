@@ -1,0 +1,3 @@
+{"action":"completed","repository":{"full_name":"acme/payments"},
+ "workflow_run":{"id":555,"head_branch":"copilot/fix-101","run_started_at":"2026-10-07T12:00:00Z","updated_at":"2026-10-07T12:02:05Z",
+   "pull_requests":[{"number":418}]}}

@@ -10,6 +10,7 @@ import io.agentic.functions.notify.SlackNotifier;
 import io.agentic.functions.run.AbortService;
 import io.agentic.functions.run.RunStarter;
 import io.agentic.functions.run.SignalDispatcher;
+import io.agentic.functions.usage.UsageMeter;
 
 import java.util.List;
 
@@ -52,6 +53,10 @@ public final class Wiring {
         return transitions;
     }
 
+    public static UsageMeter usageMeter() {
+        return new UsageMeter(Services.instance().runStore(), Wiring::slackNotifier);
+    }
+
     public static GateCollector gateCollector() {
         return new GateCollector(Services.instance().github(), identities());
     }
@@ -68,7 +73,7 @@ public final class Wiring {
 
     public static GitHubEventRouter router() {
         Services s = Services.instance();
-        return new GitHubEventRouter(s.runStore(), s.github(), identities(), abortService(), new io.agentic.functions.readiness.RepoConfigLoader(s.github()));
+        return new GitHubEventRouter(s.runStore(), s.github(), identities(), abortService(), new io.agentic.functions.readiness.RepoConfigLoader(s.github()), usageMeter());
     }
 
     public static SignalDispatcher dispatcher() {

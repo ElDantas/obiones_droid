@@ -178,6 +178,73 @@ public class RunStore {
         set(ticketKey, "usageJson", s(json(usage)));
     }
 
+    public RunUsage updateUsage(String ticketKey, java.util.function.UnaryOperator<RunUsage> change) {
+        for (int attempt = 0; attempt < 30; attempt++) {
+            if (attempt > 0) {
+                try {
+                    Thread.sleep(java.util.concurrent.ThreadLocalRandom.current().nextLong(5, 25L * Math.min(attempt, 8)));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+            Map<String, AttributeValue> item = ddb.getItem(GetItemRequest.builder()
+                    .tableName(runsTable).key(key(ticketKey)).consistentRead(true).projectionExpression("usageJson").build()).item();
+            String current = item.get("usageJson").s();
+            RunUsage next = change.apply(read(current, new TypeReference<RunUsage>() {
+            }));
+            try {
+                ddb.updateItem(UpdateItemRequest.builder()
+                        .tableName(runsTable)
+                        .key(key(ticketKey))
+                        .updateExpression("SET usageJson = :n")
+                        .conditionExpression("usageJson = :c")
+                        .expressionAttributeValues(Map.of(":n", s(json(next)), ":c", s(current)))
+                        .build());
+                return next;
+            } catch (ConditionalCheckFailedException e) {
+                continue;
+            }
+        }
+        throw new IllegalStateException("Could not update usage for " + ticketKey);
+    }
+
+    public boolean addToSet(String ticketKey, String attribute, String value) {
+        try {
+            ddb.updateItem(UpdateItemRequest.builder()
+                    .tableName(runsTable)
+                    .key(key(ticketKey))
+                    .updateExpression("ADD #a :v")
+                    .conditionExpression("attribute_exists(ticketKey) AND (attribute_not_exists(#a) OR NOT contains(#a, :s))")
+                    .expressionAttributeNames(Map.of("#a", attribute))
+                    .expressionAttributeValues(Map.of(":v", AttributeValue.fromSs(List.of(value)), ":s", s(value)))
+                    .build());
+            return true;
+        } catch (ConditionalCheckFailedException e) {
+            return false;
+        }
+    }
+
+    public void setFlag(String ticketKey, String attribute, boolean value) {
+        set(ticketKey, attribute, AttributeValue.fromBool(value));
+    }
+
+    public boolean flag(String ticketKey, String attribute) {
+        Map<String, AttributeValue> item = ddb.getItem(GetItemRequest.builder()
+                .tableName(runsTable).key(key(ticketKey)).consistentRead(true).build()).item();
+        return item != null && item.containsKey(attribute) && Boolean.TRUE.equals(item.get(attribute).bool());
+    }
+
+    public void setString(String ticketKey, String attribute, String value) {
+        set(ticketKey, attribute, s(value));
+    }
+
+    public Optional<String> string(String ticketKey, String attribute) {
+        Map<String, AttributeValue> item = ddb.getItem(GetItemRequest.builder()
+                .tableName(runsTable).key(key(ticketKey)).consistentRead(true).build()).item();
+        return item != null && item.containsKey(attribute) ? Optional.ofNullable(item.get(attribute).s()) : Optional.empty();
+    }
+
     public void saveBudgets(String ticketKey, Budgets budgets) {
         set(ticketKey, "budgetsJson", s(json(budgets)));
     }

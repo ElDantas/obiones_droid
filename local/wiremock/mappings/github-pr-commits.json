@@ -1,0 +1,27 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/repos/acme/payments/pulls/418/commits"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": [
+      {
+        "sha": "abc123",
+        "author": {
+          "login": "Copilot"
+        },
+        "commit": {
+          "message": "Cap discounts",
+          "author": {
+            "name": "Copilot"
+          }
+        }
+      }
+    ],
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "priority": 1
+}

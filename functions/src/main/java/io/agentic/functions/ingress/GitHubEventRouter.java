@@ -9,6 +9,7 @@ import io.agentic.functions.run.AbortService;
 import io.agentic.functions.store.Run;
 import io.agentic.functions.store.RunStore;
 import io.agentic.functions.store.WaitKind;
+import io.agentic.functions.usage.UsageMeter;
 import io.agentic.integrations.github.GitHubClient;
 import io.agentic.integrations.github.model.CheckRun;
 import io.agentic.integrations.github.model.PullRequest;
@@ -32,13 +33,16 @@ public class GitHubEventRouter {
     private final Identities identities;
     private final AbortService abortService;
     private final RepoConfigLoader configLoader;
+    private final UsageMeter usage;
 
-    public GitHubEventRouter(RunStore runStore, GitHubClient github, Identities identities, AbortService abortService, RepoConfigLoader configLoader) {
+    public GitHubEventRouter(RunStore runStore, GitHubClient github, Identities identities, AbortService abortService, RepoConfigLoader configLoader,
+                             UsageMeter usage) {
         this.runStore = runStore;
         this.github = github;
         this.identities = identities;
         this.abortService = abortService;
         this.configLoader = configLoader;
+        this.usage = usage;
     }
 
     public List<RoutedSignal> route(String eventName, JsonNode payload) {
@@ -54,6 +58,7 @@ public class GitHubEventRouter {
             case "check_suite.completed" -> checksCompleted(repo, payload.at("/check_suite/head_sha").asText(), payload.at("/check_suite/pull_requests"));
             case "check_run.completed" -> checksCompleted(repo, payload.at("/check_run/head_sha").asText(), payload.at("/check_run/pull_requests"));
             case "pull_request_review.submitted" -> reviewSubmitted(repo, payload);
+            case "workflow_run.completed" -> workflowRunCompleted(repo, payload.path("workflow_run"));
             default -> eventName.equals("push") ? push(repo, payload) : List.of();
         };
     }
@@ -169,6 +174,24 @@ public class GitHubEventRouter {
 
     private boolean hasReviewComments(String repo, int pr, long reviewId) {
         return github.listReviewComments(repo, pr).stream().anyMatch(c -> c.reviewId() != null && c.reviewId() == reviewId);
+    }
+
+    private List<RoutedSignal> workflowRunCompleted(String repo, JsonNode run) {
+        int minutes = minutes(run.path("run_started_at").asText(null), run.path("updated_at").asText(null));
+        for (JsonNode p : run.path("pull_requests")) {
+            runStore.findByPr(repo, p.path("number").asInt())
+                    .filter(r -> r.state().isActive())
+                    .ifPresent(r -> usage.recordActionsMinutes(r.ticketKey(), run.path("id").asText(), minutes));
+        }
+        return List.of();
+    }
+
+    static int minutes(String startedAt, String updatedAt) {
+        if (startedAt == null || updatedAt == null) {
+            return 0;
+        }
+        long seconds = java.time.Duration.between(java.time.Instant.parse(startedAt), java.time.Instant.parse(updatedAt)).getSeconds();
+        return seconds <= 0 ? 0 : (int) Math.ceil(seconds / 60.0);
     }
 
     private List<RoutedSignal> push(String repo, JsonNode payload) {

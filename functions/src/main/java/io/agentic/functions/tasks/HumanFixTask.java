@@ -34,7 +34,7 @@ public class HumanFixTask implements RequestHandler<Map<String, Object>, Map<Str
 
     public HumanFixTask() {
         this(Services.instance().runStore(), Wiring.transitions(), Services.instance().github(), Services.instance().copilot(),
-                new UsageMeter(Services.instance().runStore()), Services.instance().clock());
+                Wiring.usageMeter(), Services.instance().clock());
     }
 
     HumanFixTask(RunStore store, RunTransitions transitions, GitHubClient github, CopilotClient copilot, UsageMeter usage, Clock clock) {
@@ -55,6 +55,9 @@ public class HumanFixTask implements RequestHandler<Map<String, Object>, Map<Str
         if (verdict.isBreach()) {
             return TaskSupport.decision("ESCALATE", "Human review requested changes " + run.usage().humanIterations()
                     + " times; the ticket may be underspecified");
+        }
+        if (verdict.level() == BudgetVerdict.Level.WARN) {
+            usage.warnOnce(key, "budget-warn", "⚠️ Approaching limits: " + String.join("; ", verdict.reasons()));
         }
         long reviewId = reviewId(TaskSupport.signal(input));
         List<ReviewComment> comments = reviewId > 0 ? github.listReviewCommentsForReview(run.repo(), run.prNumber(), reviewId) : List.of();

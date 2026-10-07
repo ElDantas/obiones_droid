@@ -4,7 +4,6 @@ import io.agentic.core.run.RunState;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -95,7 +94,21 @@ class FailurePathsE2E {
     }
 
     @Test
-    @Disabled("enabled in step 15: repeated failure fingerprint escalates")
     void sameFailureTwiceEscalates() {
+        driver.stub(FAILING_CHECKS);
+        driver.stub(NO_ANNOTATIONS);
+        driver.jira("E2E-7", "approved");
+        driver.awaitState("E2E-7", RunState.CODING, T);
+        driver.github("pull_request", fixture("pr-opened.json", Map.of("pr", "418")));
+        driver.github("pull_request", fixture("review-requested.json", Map.of()));
+        driver.awaitWait("E2E-7", "CHECKS_COMPLETE", T);
+        driver.github("check_suite", fixture("check-suite-completed.json", Map.of("conclusion", "failure")));
+        driver.awaitWait("E2E-7", "PR_UPDATED", T);
+        driver.github("pull_request", fixture("review-requested.json", Map.of()));
+        driver.awaitWait("E2E-7", "CHECKS_COMPLETE", T);
+        driver.github("check_suite", fixture("check-suite-completed.json", Map.of("conclusion", "failure")));
+        driver.awaitState("E2E-7", RunState.ESCALATED, T);
+        assertThat(driver.wiremockCount("POST", "/repos/acme/payments/issues/418/comments", "@copilot The automated gates failed")).isEqualTo(1);
+        assertThat(driver.wiremockCount("POST", "/api/chat.postMessage", "Same failure repeated")).isGreaterThanOrEqualTo(1);
     }
 }

@@ -41,6 +41,8 @@ public final class AgenticApp {
             Grants.common(mcp.function());
             Grants.bedrock(mcp.function());
             Grants.memory(mcp.function());
+            new AnalyticsStack(app, "AgenticAnalytics", props, foundation.ledger(), env, settings).addDependency(foundation);
+            new AlarmsStack(app, "AgenticAlarms", props, orchestrator.machine(), api.api(), env, settings).addDependency(api);
         }
         Tags.of(app).add("project", "agentic");
     }
